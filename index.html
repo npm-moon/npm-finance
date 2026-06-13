@@ -403,7 +403,7 @@ function renderInput() {
   const cats = ['cash','investment','pension','stocks','bonds'];
 
   let html = `<div class="card"><div class="card-title">기준일</div>
-    <input class="inp-field" type="date" id="inp_date" value="${new Date().toISOString().slice(0,10)}" style="margin-bottom:4px"/>
+    <input class="inp-field" type="date" id="inp_date" value="${new Date().toISOString().slice(0,10)}" style="margin-bottom:4px" onchange="checkDateMode()"/>
     <div style="font-size:11px;color:#9aa89f">이전 달 데이터를 불러와 수정하거나, 새 날짜로 입력하세요</div>
     <button onclick="loadDateData()" style="margin-top:8px;padding:8px 14px;border:1px solid #1a7a4c;border-radius:8px;background:transparent;color:#1a7a4c;font-size:13px;cursor:pointer">이 날짜 데이터 불러오기</button>
   </div>`;
@@ -449,6 +449,7 @@ function renderInput() {
 
   document.getElementById('sec-input').innerHTML = html;
   calcPreview();
+  checkDateMode();
 }
 
 function calcPreview(){
@@ -477,7 +478,18 @@ async function loadDateData(){
   const lel=document.getElementById('amt_loan');
   if(lel) lel.value=loan;
   calcPreview();
+  checkDateMode();
   toast('📥 '+dt+' 데이터 불러옴');
+}
+
+function checkDateMode(){
+  const dt = document.getElementById('inp_date')?.value;
+  if(!dt) return;
+  const btn = document.getElementById('saveBtn');
+  if(!btn) return;
+  const exists = dt in snapshots && Object.keys(snapshots[dt]||{}).length > 0;
+  btn.textContent = exists ? '수정하기' : '저장하기';
+  btn.style.background = exists ? '#185fa5' : '#0f3d28';
 }
 
 async function saveAll(){
