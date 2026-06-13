@@ -332,24 +332,123 @@ function simulate(s) {
   return {dep, rows, end:rows[rows.length-1].bal, peak:Math.max(...rows.map(r=>r.bal))};
 }
 
+let simRealView = false;
+
 function renderSim() {
   const s = simSet;
   const sim = simulate(s);
   const ok = sim.dep===null;
+
+  // 시나리오 비교 (수익률 -1%, 현재, +1%)
+  const simLow = simulate({...s, return_rate: Math.max(1, s.return_rate-1)});
+  const simHigh = simulate({...s, return_rate: Math.min(8, s.return_rate+1)});
+
+  // 역산: 86세까지 필요 수익률
+  function solveReturnRate() {
+    let lo=0, hi=0.15;
+    for(let i=0;i<60;i++){
+      const m=(lo+hi)/2;
+      if(simulate({...s,return_rate:m*100}).dep===null) hi=m; else lo=m;
+    }
+    return (hi*100).toFixed(2);
+  }
+  const reqRate = solveReturnRate();
+
+  // 52세 예상 자산
+  function balAt(age) {
+    let bal=START_BAL;
+    const r=s.return_rate/100;
+    for(let a=SIM_AGE0;a<=age;a++){
+      bal*=(1+r);
+      if(a<=s.retire_age) bal+=s.save_monthly*1e4*12*(1+SIM_SG)**(a-SIM_AGE0);
+    }
+    return bal;
+  }
+  const balAt52 = balAt(Math.min(s.retire_age, 52));
+
+  // 65세 월 인출액 (명목)
+  const nominalAt65 = s.living_slow*1e4*(1+s.inflation/100)**(2026+24-2024);
+  // 연금 커버리지
+  const pensionCoverage = Math.round((SIM_PENSION/12) / nominalAt65 * 100);
+
   document.getElementById('sec-sim').innerHTML = `
+    <!-- 결과 카드 -->
     <div style="border-radius:16px;padding:18px;color:#fff;margin-bottom:12px;background:${ok?'linear-gradient(135deg,#0f3d28,#1a7a4c)':'linear-gradient(135deg,#7a2e1e,#b5482e)'}">
       <div style="font-size:12px;opacity:.8">자산 고갈 시점</div>
-      <div style="font-size:34px;font-weight:600;margin:4px 0 10px">${ok?'86세 유지 ✓':sim.dep+'세'}</div>
-      <div style="font-size:12px;opacity:.85;margin-bottom:12px">${ok?'목표 시점까지 자금이 버팁니다':'목표(86세)보다 '+(86-sim.dep)+'년 부족'}</div>
-      <div style="display:flex;gap:20px">
-        <div><div style="font-size:11px;opacity:.75">자산 정점</div><div style="font-size:18px;font-weight:600">${sim.peak}억</div></div>
-        <div><div style="font-size:11px;opacity:.75">86세 잔고</div><div style="font-size:18px;font-weight:600">${sim.end}억</div></div>
+      <div style="font-size:34px;font-weight:600;margin:4px 0 6px">${ok?'86세 유지 ✓':sim.dep+'세'}</div>
+      <div style="font-size:12px;opacity:.85;margin-bottom:14px">${ok?'목표 시점까지 자금이 버팁니다':'목표(86세)보다 '+(86-sim.dep)+'년 부족'}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <div><div style="font-size:10px;opacity:.72">자산 정점</div><div style="font-size:16px;font-weight:600">${sim.peak}억</div></div>
+        <div><div style="font-size:10px;opacity:.72">52세 예상</div><div style="font-size:16px;font-weight:600">${(balAt52/1e8).toFixed(1)}억</div></div>
+        <div><div style="font-size:10px;opacity:.72">86세 잔고</div><div style="font-size:16px;font-weight:600">${sim.end}억</div></div>
       </div>
     </div>
+
+    <!-- 핵심 지표 -->
     <div class="card">
-      <div class="card-title">잔고 추이</div>
-      <div style="position:relative;width:100%;height:180px"><canvas id="simCv"></canvas></div>
+      <div class="card-title">핵심 지표</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#f9f7f2;border-radius:10px;padding:12px">
+          <div style="font-size:11px;color:#5a6a60;margin-bottom:4px">86세까지 필요 수익률</div>
+          <div style="font-size:22px;font-weight:600;color:${parseFloat(reqRate)<=s.return_rate?'#1a7a4c':'#b5482e'}">${reqRate}%</div>
+          <div style="font-size:11px;color:#9aa89f;margin-top:2px">현재 설정: ${s.return_rate}%</div>
+        </div>
+        <div style="background:#f9f7f2;border-radius:10px;padding:12px">
+          <div style="font-size:11px;color:#5a6a60;margin-bottom:4px">연금 생활비 충당률</div>
+          <div style="font-size:22px;font-weight:600;color:${pensionCoverage>=50?'#1a7a4c':'#caa94a'}">${pensionCoverage}%</div>
+          <div style="font-size:11px;color:#9aa89f;margin-top:2px">65세 기준 월 ${Math.round(nominalAt65/1e4)}만 중</div>
+        </div>
+        <div style="background:#f9f7f2;border-radius:10px;padding:12px">
+          <div style="font-size:11px;color:#5a6a60;margin-bottom:4px">수익률 -1% 시나리오</div>
+          <div style="font-size:22px;font-weight:600;color:${simLow.dep===null?'#1a7a4c':'#b5482e'}">${simLow.dep===null?'유지':''+simLow.dep+'세'}</div>
+          <div style="font-size:11px;color:#9aa89f;margin-top:2px">수익률 ${(s.return_rate-1).toFixed(1)}% 적용</div>
+        </div>
+        <div style="background:#f9f7f2;border-radius:10px;padding:12px">
+          <div style="font-size:11px;color:#5a6a60;margin-bottom:4px">수익률 +1% 시나리오</div>
+          <div style="font-size:22px;font-weight:600;color:#1a7a4c">${simHigh.dep===null?'유지':simHigh.dep+'세'}</div>
+          <div style="font-size:11px;color:#9aa89f;margin-top:2px">수익률 ${(s.return_rate+1).toFixed(1)}% 적용</div>
+        </div>
+      </div>
     </div>
+
+    <!-- 차트 -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span class="card-title" style="margin:0">잔고 추이</span>
+        <button onclick="simRealView=!simRealView;renderSim()" style="font-size:11px;border:1px solid #e3ddd0;border-radius:20px;padding:4px 10px;cursor:pointer;background:${simRealView?'#0f3d28':'#fff'};color:${simRealView?'#fff':'#5a6a60'}">${simRealView?'오늘 구매력':'명목 금액'}</button>
+      </div>
+      <div style="font-size:11px;color:#9aa89f;margin-bottom:8px">${simRealView?'오늘 돈 기준 실질 가치 (물가 차감)':'미래 실제 지갑에서 나가는 금액'}</div>
+      <div style="position:relative;width:100%;height:200px"><canvas id="simCv"></canvas></div>
+      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
+        <span style="font-size:11px;color:#5a6a60;display:flex;align-items:center;gap:4px"><span style="width:20px;height:2px;background:#0f3d28;display:inline-block"></span>수익률${(s.return_rate+1).toFixed(0)}%(+1%)</span>
+        <span style="font-size:11px;color:#5a6a60;display:flex;align-items:center;gap:4px"><span style="width:20px;height:2px;background:#1a7a4c;display:inline-block"></span>현재 ${s.return_rate}%</span>
+        <span style="font-size:11px;color:#5a6a60;display:flex;align-items:center;gap:4px"><span style="width:20px;height:2px;background:#e07a3c;display:inline-block;border-top:2px dashed #e07a3c;height:0"></span>수익률${(s.return_rate-1).toFixed(0)}%(-1%)</span>
+      </div>
+    </div>
+
+    <!-- 명목 생활비 분석 -->
+    <div class="card">
+      <div class="card-title">미래 명목 생활비 (물가반영)</div>
+      <div style="font-size:12px;color:#5a6a60;margin-bottom:10px">오늘 구매력 기준 설정값이 물가 반영 시 명목으로는:</div>
+      ${[52,60,65,70,75,80].map(age=>{
+        const yr=2026+(age-41);
+        const living=age<=64?s.living_active:age<=74?s.living_slow:s.living_old;
+        const nominal=Math.round(living*(1+s.inflation/100)**(yr-2024));
+        const pension=age>=65?Math.round(SIM_PENSION/12/1e4):0;
+        return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e3ddd0;align-items:center">
+          <span style="font-size:13px;color:#1a2620;font-weight:500">${age}세 (${yr}년)</span>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:600">${nominal.toLocaleString('ko-KR')}만원/월</div>
+            ${pension?`<div style="font-size:11px;color:#1a7a4c">연금 ${pension}만 포함 실수령 ${(nominal-pension).toLocaleString()}만</div>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="margin-top:10px;padding:10px;background:#f9f7f2;border-radius:8px;font-size:12px;color:#5a6a60">
+        💡 명목 금액이 커 보여도 오늘 ${s.living_active}만원의 삶과 동일한 수준이에요
+      </div>
+    </div>
+
+    <!-- 슬라이더 -->
     <div class="card">
       <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#1a7a4c;font-weight:700;margin-bottom:12px">저축 · 수익</div>
       ${simSlider('retire_age','은퇴 나이',s.retire_age,'세',48,65,1,'저축 종료 시점. 가장 강력한 변수')}
@@ -364,7 +463,27 @@ function renderSim() {
       ${simSlider('living_old','고령기 75세~',s.living_old,'만원',150,500,10,'')}
       ${simSlider('alba','알바 수입 52~64세',s.alba,'만원',0,300,10,'')}
     </div>`;
-  drawSimChart(sim);
+
+  // 3개 시나리오 차트
+  const deflate = (val, age) => simRealView ? val/Math.pow(1+s.inflation/100, age-SIM_AGE0) : val;
+  const ctx = document.getElementById('simCv');
+  if(!ctx) return;
+  if(simChartObj) simChartObj.destroy();
+  simChartObj = new Chart(ctx.getContext('2d'),{
+    type:'line',
+    data:{
+      labels: sim.rows.map(r=>r.age+'세'),
+      datasets:[
+        {label:'수익률'+(s.return_rate+1).toFixed(0)+'%', data:simHigh.rows.map(r=>parseFloat(deflate(r.bal*1e8,r.age)/1e8).toFixed(2)), borderColor:'#0f3d28', backgroundColor:'transparent', borderWidth:2, pointRadius:2, tension:0.3},
+        {label:'현재 '+s.return_rate+'%', data:sim.rows.map(r=>parseFloat(deflate(r.bal*1e8,r.age)/1e8).toFixed(2)), borderColor:'#1a7a4c', backgroundColor:'rgba(26,122,76,0.07)', fill:true, borderWidth:2.4, pointRadius:3, tension:0.3},
+        {label:'수익률'+(s.return_rate-1).toFixed(0)+'%', data:simLow.rows.map(r=>parseFloat(deflate(r.bal*1e8,r.age)/1e8).toFixed(2)), borderColor:'#e07a3c', backgroundColor:'transparent', borderWidth:2, borderDash:[4,3], pointRadius:2, tension:0.3},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}억`}}},
+      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10},callback:v=>v+'억'}}}}
+  });
+
   document.querySelectorAll('.sim-sl').forEach(el=>{
     el.addEventListener('input',e=>{
       simSet[e.target.dataset.k]=parseFloat(e.target.value);
