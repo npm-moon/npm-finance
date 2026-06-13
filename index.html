@@ -129,12 +129,14 @@ input,button,select{font-family:inherit}
   <div class="tab-content">
     <div class="section active" id="sec-home"><div class="loading">불러오는 중…</div></div>
     <div class="section" id="sec-trend"><div class="loading">불러오는 중…</div></div>
+    <div class="section" id="sec-sim"><div class="loading">불러오는 중…</div></div>
     <div class="section" id="sec-input"><div class="loading">불러오는 중…</div></div>
     <div class="section" id="sec-todo"><div class="loading">불러오는 중…</div></div>
   </div>
   <nav id="nav">
     <button class="nav-btn on" onclick="go('home',this)"><span class="nav-icon">📊</span><span class="nav-lbl">홈</span></button>
     <button class="nav-btn" onclick="go('trend',this)"><span class="nav-icon">📈</span><span class="nav-lbl">추이</span></button>
+    <button class="nav-btn" onclick="go('sim',this)"><span class="nav-icon">🏖️</span><span class="nav-lbl">시뮬</span></button>
     <button class="nav-btn" onclick="go('input',this)"><span class="nav-icon">✏️</span><span class="nav-lbl">입력</span></button>
     <button class="nav-btn" onclick="go('todo',this)"><span class="nav-icon">✅</span><span class="nav-lbl">할일</span></button>
   </nav>
@@ -165,7 +167,7 @@ const CAT_COLOR = {cash:'#6dbb90', investment:'#0f3d28', pension:'#7aa8d8', stoc
 const won = n => Math.round((+n||0)/1e4).toLocaleString('ko-KR') + '만';
 const eok = n => ((+n||0)/1e8).toFixed(2);
 const toast = msg => { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); };
-const titles = {home:'자산 현황', trend:'월별 변화 추이', input:'계좌별 입력', todo:'액션 플랜'};
+const titles = {home:'자산 현황', trend:'월별 변화 추이', sim:'노후 시뮬레이터', input:'계좌별 입력', todo:'액션 플랜'};
 
 // ── 상태 ─────────────────────────────────
 let accounts = [], snapshots = {}, loans = [], charts = {};
@@ -228,6 +230,7 @@ function go(id, btn) {
   document.getElementById('hTitle').textContent = titles[id];
   if(id==='home') renderHome();
   if(id==='trend') renderTrend();
+  if(id==='sim') renderSim();
   if(id==='input') renderInput();
   if(id==='todo') renderTodo();
 }
@@ -297,6 +300,96 @@ function renderHome() {
     html += `</div>`;
   }
   document.getElementById('sec-home').innerHTML = html;
+}
+
+
+// ── 노후 시뮬 ────────────────────────────
+const START_BAL=277732828, SIM_AGE0=41, SIM_YEAR0=2026, SIM_PENSION_AGE=65, SIM_PENSION=33600000, SIM_SG=0.03;
+let simSet = {retire_age:52, save_monthly:490, return_rate:4.0, inflation:2.5, living_active:400, living_slow:360, living_old:300, alba:100};
+let simChartObj = null;
+
+function simulate(s) {
+  const r=s.return_rate/100, f=s.inflation/100;
+  const living = a => (a<=64?s.living_active:a<=74?s.living_slow:s.living_old)*1e4*12;
+  let bal=START_BAL, dep=null, rows=[];
+  const AGES=[45,50,52,55,60,65,70,75,80,86];
+  for (let age=SIM_AGE0; age<=86; age++) {
+    const yr=SIM_YEAR0+(age-SIM_AGE0); bal*=(1+r);
+    if(age<=s.retire_age) bal+=s.save_monthly*1e4*12*(1+SIM_SG)**(age-SIM_AGE0);
+    else {
+      bal-=living(age)*(1+f)**(yr-2024);
+      if(age<=64) bal+=s.alba*1e4*12;
+      if(age>=SIM_PENSION_AGE) bal+=SIM_PENSION;
+    }
+    if(bal<0&&dep===null) dep=age;
+    if(AGES.includes(age)) rows.push({age, bal:parseFloat((bal/1e8).toFixed(2))});
+  }
+  return {dep, rows, end:rows[rows.length-1].bal, peak:Math.max(...rows.map(r=>r.bal))};
+}
+
+function renderSim() {
+  const s = simSet;
+  const sim = simulate(s);
+  const ok = sim.dep===null;
+  document.getElementById('sec-sim').innerHTML = `
+    <div style="border-radius:16px;padding:18px;color:#fff;margin-bottom:12px;background:${ok?'linear-gradient(135deg,#0f3d28,#1a7a4c)':'linear-gradient(135deg,#7a2e1e,#b5482e)'}">
+      <div style="font-size:12px;opacity:.8">자산 고갈 시점</div>
+      <div style="font-size:34px;font-weight:600;margin:4px 0 10px">${ok?'86세 유지 ✓':sim.dep+'세'}</div>
+      <div style="font-size:12px;opacity:.85;margin-bottom:12px">${ok?'목표 시점까지 자금이 버팁니다':'목표(86세)보다 '+(86-sim.dep)+'년 부족'}</div>
+      <div style="display:flex;gap:20px">
+        <div><div style="font-size:11px;opacity:.75">자산 정점</div><div style="font-size:18px;font-weight:600">${sim.peak}억</div></div>
+        <div><div style="font-size:11px;opacity:.75">86세 잔고</div><div style="font-size:18px;font-weight:600">${sim.end}억</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">잔고 추이</div>
+      <div style="position:relative;width:100%;height:180px"><canvas id="simCv"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#1a7a4c;font-weight:700;margin-bottom:12px">저축 · 수익</div>
+      ${simSlider('retire_age','은퇴 나이',s.retire_age,'세',48,65,1,'저축 종료 시점. 가장 강력한 변수')}
+      ${simSlider('save_monthly','월 저축액',s.save_monthly,'만원',100,1000,10,'')}
+      ${simSlider('return_rate','연 수익률',s.return_rate,'%',1,8,0.1,'')}
+      ${simSlider('inflation','물가상승률',s.inflation,'%',1.5,4.5,0.1,'현실적 기준: 3.0%')}
+    </div>
+    <div class="card">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#1a7a4c;font-weight:700;margin-bottom:12px">노후 생활비 (오늘 구매력)</div>
+      ${simSlider('living_active','활동기 ~64세',s.living_active,'만원',250,700,10,'부부 적정 330만보다 여유')}
+      ${simSlider('living_slow','둔화기 65~74세',s.living_slow,'만원',200,600,10,'')}
+      ${simSlider('living_old','고령기 75세~',s.living_old,'만원',150,500,10,'')}
+      ${simSlider('alba','알바 수입 52~64세',s.alba,'만원',0,300,10,'')}
+    </div>`;
+  drawSimChart(sim);
+  document.querySelectorAll('.sim-sl').forEach(el=>{
+    el.addEventListener('input',e=>{
+      simSet[e.target.dataset.k]=parseFloat(e.target.value);
+      document.getElementById('sv_'+e.target.dataset.k).textContent=simSet[e.target.dataset.k].toLocaleString('ko-KR');
+      renderSim();
+    });
+  });
+}
+
+function simSlider(k,label,val,unit,min,max,step,hint){
+  return `<div style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:13px;color:#5a6a60">${label}</span>
+      <span style="font-weight:600;color:#0f3d28;font-size:14px"><span id="sv_${k}">${val.toLocaleString('ko-KR')}</span><span style="font-size:11px;color:#9aa89f;margin-left:2px">${unit}</span></span>
+    </div>
+    <input type="range" class="sim-sl" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}" style="-webkit-appearance:none;width:100%;height:24px;background:transparent">
+    ${hint?`<div style="font-size:11px;color:#9aa89f;margin-top:3px">${hint}</div>`:''}
+  </div>`;
+}
+
+function drawSimChart(sim){
+  const ctx=document.getElementById('simCv');
+  if(!ctx) return;
+  if(simChartObj) simChartObj.destroy();
+  const ok=sim.dep===null;
+  simChartObj=new Chart(ctx.getContext('2d'),{
+    type:'line',
+    data:{labels:sim.rows.map(r=>r.age+'세'),datasets:[{data:sim.rows.map(r=>r.bal),borderColor:ok?'#1a7a4c':'#b5482e',backgroundColor:'transparent',borderWidth:2.4,pointRadius:3,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+'억'}}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10},callback:v=>v+'억'}}}}
+  });
 }
 
 // ── 추이 화면 ────────────────────────────
