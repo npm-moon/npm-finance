@@ -146,6 +146,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;heigh
     <div class="section active" id="sec-home">
       <div id="homeContent"><div class="loading">불러오는 중...</div></div>
     </div>
+    <!-- 추이 -->
+    <div class="section" id="sec-trend">
+      <div id="trendContent"><div class="loading">불러오는 중...</div></div>
+    </div>
     <!-- 입력 -->
     <div class="section" id="sec-input">
       <div id="inputContent"><div class="loading">불러오는 중...</div></div>
@@ -162,6 +166,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;heigh
 
   <nav id="nav">
     <button class="nav-btn active" onclick="switchTab('home',this)"><span class="nav-icon">📊</span><span class="nav-label">홈</span></button>
+    <button class="nav-btn" onclick="switchTab('trend',this)"><span class="nav-icon">📈</span><span class="nav-label">추이</span></button>
     <button class="nav-btn" onclick="switchTab('input',this)"><span class="nav-icon">✏️</span><span class="nav-label">입력</span></button>
     <button class="nav-btn" onclick="switchTab('sim',this)"><span class="nav-icon">🏖️</span><span class="nav-label">시뮬</span></button>
     <button class="nav-btn" onclick="switchTab('todo',this)"><span class="nav-icon">✅</span><span class="nav-label">할일</span></button>
@@ -276,7 +281,7 @@ if (accessToken) {
 // ═══════════════════════════════════════════
 // 탭 전환
 // ═══════════════════════════════════════════
-const titles = { home:'자산 현황', input:'월말 입력', sim:'노후 시뮬레이터', todo:'액션 플랜' };
+const titles = { home:'자산 현황', trend:'월별 변화 추이', input:'월말 입력', sim:'노후 시뮬레이터', todo:'액션 플랜' };
 let currentTab = 'home';
 function switchTab(id, btn) {
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -286,6 +291,7 @@ function switchTab(id, btn) {
   document.getElementById('headerTitle').textContent = titles[id];
   currentTab = id;
   if (id==='home') renderHome();
+  if (id==='trend') renderTrend();
   if (id==='input') renderInput();
   if (id==='sim') renderSim();
   if (id==='todo') renderTodo();
@@ -294,12 +300,12 @@ function switchTab(id, btn) {
 // ═══════════════════════════════════════════
 // 상태
 // ═══════════════════════════════════════════
-let snap = null, simSet = null, actions = [], simChart = null, homeChart = null, realView = false;
+let snap = null, allSnaps = [], simSet = null, actions = [], simChart = null, homeChart = null, trendChart = null, realView = false;
 
 async function init() {
   try {
-    const snaps = await db.get('snapshots','order=snapshot_date.desc&limit=1');
-    snap = snaps[0] || {};
+    allSnaps = await db.get('snapshots','order=snapshot_date.asc');
+    snap = allSnaps[allSnaps.length - 1] || {};
     const sims = await db.get('sim_settings','id=eq.1');
     simSet = sims[0] || { retire_age:52, save_monthly:490, return_rate:4.0, inflation:2.5, living_active:400, living_slow:360, living_old:300, alba:100 };
     actions = await db.get('action_items','order=sort_order.asc');
@@ -358,6 +364,128 @@ function renderHome() {
 }
 
 // ═══════════════════════════════════════════
+// 추이 화면
+// ═══════════════════════════════════════════
+function renderTrend() {
+  if (!allSnaps.length) return;
+  const labels = allSnaps.map(s => s.snapshot_date.slice(2,7).replace('-','/'));
+  const totals = allSnaps.map(s => total(s));
+  const nets   = allSnaps.map(s => net(s, s.loan));
+  const loans  = allSnaps.map(s => +(s.loan)||0);
+
+  // 월별 증감
+  const changes = allSnaps.map((s,i) => {
+    if(i===0) return 0;
+    return total(s) - total(allSnaps[i-1]);
+  });
+
+  // 최신 vs 최초 비교
+  const first = allSnaps[0], last = allSnaps[allSnaps.length-1];
+  const growthPct = (((total(last)-total(first))/total(first))*100).toFixed(1);
+  const months = allSnaps.length - 1;
+
+  document.getElementById('trendContent').innerHTML = `
+    <div class="hero">
+      <div class="hero-label">전체 기간 성장</div>
+      <div class="hero-big">+${growthPct}%</div>
+      <div class="hero-row">
+        <div class="hero-item"><div class="h-l">기간</div><div class="h-v">${months}개월</div></div>
+        <div class="hero-item"><div class="h-l">시작</div><div class="h-v">${(total(first)/1e8).toFixed(2)}억</div></div>
+        <div class="hero-item"><div class="h-l">현재</div><div class="h-v">${(total(last)/1e8).toFixed(2)}억</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">총자산 · 순자산 추이</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="trendChart1"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">월별 자산 증가액</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="trendChart2"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">자산 구성 변화</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="trendChart3"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">월별 스냅샷</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:400px">
+          <thead>
+            <tr style="border-bottom:1.5px solid #e3ddd0">
+              <th style="text-align:left;padding:7px 6px;color:#5a6a60;font-weight:500">날짜</th>
+              <th style="text-align:right;padding:7px 6px;color:#5a6a60;font-weight:500">총자산</th>
+              <th style="text-align:right;padding:7px 6px;color:#5a6a60;font-weight:500">순자산</th>
+              <th style="text-align:right;padding:7px 6px;color:#5a6a60;font-weight:500">증감</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${allSnaps.map((s,i)=>{
+              const tot = total(s);
+              const n = net(s, s.loan);
+              const chg = i===0 ? 0 : tot - total(allSnaps[i-1]);
+              const chgStr = i===0 ? '-' : (chg>=0?'+':'')+Math.round(chg/1e4).toLocaleString()+'만';
+              const chgColor = chg>0?'#1a7a4c':chg<0?'#b5482e':'#5a6a60';
+              return `<tr style="border-bottom:.5px solid #e3ddd0;${i%2===1?'background:#f9f7f2':''}">
+                <td style="padding:8px 6px;font-weight:500">${s.snapshot_date.slice(2,10)}</td>
+                <td style="padding:8px 6px;text-align:right">${(tot/1e8).toFixed(2)}억</td>
+                <td style="padding:8px 6px;text-align:right">${(n/1e8).toFixed(2)}억</td>
+                <td style="padding:8px 6px;text-align:right;color:${chgColor};font-weight:600">${chgStr}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // 차트 1: 총자산 vs 순자산
+  const ctx1 = document.getElementById('trendChart1').getContext('2d');
+  new Chart(ctx1, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'총자산', data:totals.map(v=>parseFloat((v/1e8).toFixed(2))), borderColor:'#0f3d28', backgroundColor:'rgba(15,61,40,0.08)', fill:true, borderWidth:2.2, pointRadius:3, tension:0.3 },
+        { label:'순자산', data:nets.map(v=>parseFloat((v/1e8).toFixed(2))), borderColor:'#1a7a4c', backgroundColor:'transparent', borderWidth:2, pointRadius:3, tension:0.3, borderDash:[4,3] },
+      ]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:12 } }, tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}억`}} }, scales:{ x:{ticks:{font:{size:10}}}, y:{ticks:{font:{size:10},callback:v=>v+'억'}} } }
+  });
+
+  // 차트 2: 월별 증감
+  const ctx2 = document.getElementById('trendChart2').getContext('2d');
+  new Chart(ctx2, {
+    type:'bar',
+    data:{
+      labels: labels.slice(1),
+      datasets:[{ label:'증감', data:changes.slice(1).map(v=>Math.round(v/1e4)), backgroundColor:changes.slice(1).map(v=>v>=0?'#1a7a4c':'#b5482e'), borderRadius:4 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString()}만원`}} }, scales:{ x:{ticks:{font:{size:10}}}, y:{ticks:{font:{size:10},callback:v=>v+'만'}} } }
+  });
+
+  // 차트 3: 자산 구성 스택
+  const ctx3 = document.getElementById('trendChart3').getContext('2d');
+  new Chart(ctx3, {
+    type:'bar',
+    data:{
+      labels,
+      datasets: ASSETS.map(m=>({
+        label: m.label,
+        data: allSnaps.map(s=>Math.round((+s[m.key]||0)/1e4)),
+        backgroundColor: m.color,
+        stack: 'assets',
+        borderWidth: 0,
+      }))
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ font:{size:10}, boxWidth:10, padding:6 } }, tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toLocaleString()}만`}} }, scales:{ x:{ticks:{font:{size:10}}, stacked:true}, y:{ticks:{font:{size:10},callback:v=>v+'만'}, stacked:true} } }
+  });
+}
+
+// ═══════════════════════════════════════════
 // 입력 화면
 // ═══════════════════════════════════════════
 function renderInput() {
@@ -412,7 +540,9 @@ async function saveSnapshot() {
   d.loan = +(document.getElementById('inp_loan').value)||0;
   try {
     const res = await db.post('snapshots', d);
-    snap = res[0] || d;
+    const newSnap = res[0] || d;
+    allSnaps = [...allSnaps.filter(s=>s.snapshot_date!==d.snapshot_date), newSnap].sort((a,b)=>a.snapshot_date.localeCompare(b.snapshot_date));
+    snap = allSnaps[allSnaps.length-1];
     btn.textContent = '✓ 저장 완료!'; btn.classList.add('success');
     showToast('💾 저장됐어요!');
     setTimeout(()=>{ btn.textContent='저장하기'; btn.classList.remove('success'); btn.disabled=false; }, 2000);
