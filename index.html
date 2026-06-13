@@ -4,703 +4,562 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="NPM 자산관리"/>
 <title>NPM 자산관리</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-body{font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:#f0ede4;color:#1a2620;min-height:100vh}
-input,button{font-family:inherit}
+body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:#f0ede4;color:#1a2620;min-height:100vh}
+input,button,select{font-family:inherit}
 
-/* 비밀번호 화면 */
+/* 로그인 */
 #pwScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:linear-gradient(160deg,#0f3d28,#1a7a4c)}
-.pw-logo{font-size:40px;margin-bottom:12px}
-.pw-title{color:#fff;font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:-.02em}
-.pw-sub{color:rgba(255,255,255,.7);font-size:13px;margin-bottom:36px}
-.pw-box{width:100%;max-width:300px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:14px 16px;color:#fff;font-size:18px;text-align:center;letter-spacing:.2em;outline:none}
-.pw-box::placeholder{color:rgba(255,255,255,.4);letter-spacing:normal;font-size:14px}
-.pw-btn{margin-top:12px;width:100%;max-width:300px;background:#fff;color:#0f3d28;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer}
-.pw-err{color:#ffb3a0;font-size:13px;margin-top:10px;height:18px}
+.pw-logo{font-size:44px;margin-bottom:10px}
+.pw-title{color:#fff;font-size:22px;font-weight:600;margin-bottom:4px}
+.pw-sub{color:rgba(255,255,255,.7);font-size:13px;margin-bottom:32px}
+.pw-inp{width:100%;max-width:300px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:13px 16px;color:#fff;font-size:15px;outline:none;margin-bottom:8px}
+.pw-inp::placeholder{color:rgba(255,255,255,.45);font-size:14px}
+.pw-btn{width:100%;max-width:300px;background:#fff;color:#0f3d28;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer}
+.pw-err{color:#ffb3a0;font-size:13px;margin-top:10px;min-height:18px}
 
-/* 앱 전체 */
-#app{display:none;padding-bottom:calc(60px + env(safe-area-inset-bottom,0px))}
-.header{position:sticky;top:0;z-index:50;background:#f0ede4;border-bottom:1px solid #e3ddd0;padding:12px 16px 8px}
-.header-eye{font-size:11px;letter-spacing:.14em;color:#1a7a4c;font-weight:700;text-transform:uppercase}
-.header-title{font-size:20px;font-weight:600;color:#0f3d28;margin-top:1px}
+/* 앱 */
+#app{display:none;padding-bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+.header{position:sticky;top:0;z-index:50;background:#f0ede4;border-bottom:1px solid #e3ddd0;padding:12px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+.header-left .eye{font-size:11px;letter-spacing:.14em;color:#1a7a4c;font-weight:700;text-transform:uppercase}
+.header-left .title{font-size:20px;font-weight:600;color:#0f3d28;margin-top:1px}
+.logout-btn{background:none;border:1px solid #d0cfc8;border-radius:8px;padding:5px 10px;font-size:12px;color:#5a6a60;cursor:pointer}
 
-/* 탭 콘텐츠 */
 .tab-content{padding:14px 14px 0}
-.section{display:none}
-.section.active{display:block}
+.section{display:none}.section.active{display:block}
 
 /* 카드 */
-.card{background:#fff;border-radius:16px;padding:16px;border:1px solid #e3ddd0;margin-bottom:14px}
-.card-title{font-size:13px;font-weight:600;color:#0f3d28;margin-bottom:12px}
+.card{background:#fff;border-radius:14px;padding:14px 14px;border:1px solid #e3ddd0;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:600;color:#0f3d28;margin-bottom:10px}
 
-/* 히어로 카드 */
-.hero{background:linear-gradient(135deg,#0f3d28,#1a7a4c);border-radius:16px;padding:18px 20px;color:#fff;margin-bottom:14px}
-.hero-label{font-size:12px;opacity:.8;letter-spacing:.04em}
-.hero-big{font-size:36px;font-weight:600;letter-spacing:-.02em;margin:4px 0 12px;font-variant-numeric:tabular-nums}
-.hero-row{display:flex;gap:20px}
-.hero-item .h-l{font-size:11px;opacity:.75}
-.hero-item .h-v{font-size:18px;font-weight:600}
+/* 히어로 */
+.hero{background:linear-gradient(135deg,#0f3d28,#1a7a4c);border-radius:16px;padding:18px;color:#fff;margin-bottom:12px}
+.hero .lbl{font-size:12px;opacity:.78;letter-spacing:.04em}
+.hero .big{font-size:34px;font-weight:600;letter-spacing:-.02em;margin:4px 0 12px}
+.hero .row{display:flex;gap:18px;flex-wrap:wrap}
+.hero .item .hl{font-size:11px;opacity:.72}
+.hero .item .hv{font-size:17px;font-weight:600}
 
-/* 자산 목록 */
-.asset-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:.5px solid #e3ddd0}
-.asset-row:last-child{border-bottom:none}
-.asset-left{display:flex;align-items:center;gap:8px}
-.asset-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.asset-name{font-size:13px}
-.asset-amt{font-size:13px;font-weight:600}
-.asset-pct{font-size:11px;color:#5a6a60;text-align:right}
+/* 카테고리 섹션 */
+.cat-hdr{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#1a7a4c;font-weight:700;margin:14px 0 6px 2px}
+.acct-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:.5px solid #e3ddd0}
+.acct-row:last-child{border-bottom:none}
+.acct-left{display:flex;align-items:center;gap:8px}
+.acct-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.acct-name{font-size:13px}
+.acct-amt{font-size:13px;font-weight:600}
+.acct-sub{font-size:11px;color:#9aa89f}
+.badge{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:500}
+.badge-expired{background:#fde8e0;color:#b5482e}
+.badge-new{background:#e8f5ee;color:#1a7a4c}
 
-/* 입력 폼 */
-.input-group{margin-bottom:12px}
-.input-label{font-size:12px;color:#5a6a60;margin-bottom:4px}
-.input-field{width:100%;padding:10px 12px;border:1px solid #e3ddd0;border-radius:8px;font-size:14px;background:#f9f7f2;color:#1a2620}
-.input-field:focus{outline:none;border-color:#1a7a4c}
-.save-btn{width:100%;padding:14px;background:#0f3d28;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s}
-.save-btn:active{background:#1a7a4c}
-.save-btn.success{background:#1a7a4c}
-.divider{height:.5px;background:#e3ddd0;margin:14px 0}
+/* 입력 */
+.inp-field{width:100%;padding:10px 12px;border:1px solid #e3ddd0;border-radius:8px;font-size:14px;background:#f9f7f2;color:#1a2620}
+.inp-field:focus{outline:none;border-color:#1a7a4c}
+.inp-group{margin-bottom:10px}
+.inp-label{font-size:12px;color:#5a6a60;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.inp-label span{font-size:11px;color:#9aa89f}
+.save-btn{width:100%;padding:14px;background:#0f3d28;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}
+.save-btn.ok{background:#1a7a4c}
+.add-acct-btn{width:100%;padding:10px;border:1.5px dashed #c9d6cd;border-radius:10px;background:transparent;color:#5a6a60;font-size:13px;cursor:pointer;margin-top:6px}
+.status-sel{font-size:11px;border:1px solid #e3ddd0;border-radius:6px;padding:2px 6px;color:#5a6a60;background:#fff;cursor:pointer}
 
-/* 슬라이더 */
-.slider-group{margin-bottom:14px}
-.slider-row{display:flex;justify-content:space-between;margin-bottom:6px}
-.slider-label{font-size:13px;color:#5a6a60}
-.slider-val{font-size:14px;font-weight:600;color:#0f3d28}
-.slider-unit{font-size:11px;color:#5a6a60;margin-left:2px}
-input[type=range]{-webkit-appearance:none;width:100%;height:24px;background:transparent}
-input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:4px;background:#d9e2db}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#1a7a4c;margin-top:-9.5px;box-shadow:0 2px 6px rgba(15,61,40,.35)}
-.slider-hint{font-size:11px;color:#9aa89f;margin-top:3px}
-
-/* 시뮬 결과 카드 */
-.sim-result{border-radius:16px;padding:18px;color:#fff;margin-bottom:14px;transition:background .3s}
-.sim-ok{background:linear-gradient(135deg,#0f3d28,#1a7a4c)}
-.sim-bad{background:linear-gradient(135deg,#7a2e1e,#b5482e)}
-.sim-label{font-size:12px;opacity:.8}
-.sim-big{font-size:36px;font-weight:600;letter-spacing:-.02em;margin:4px 0 10px}
-.sim-note{font-size:12px;opacity:.85;margin-bottom:12px}
-.sim-stats{display:flex;gap:20px}
-.sim-stat .sl{font-size:11px;opacity:.75}
-.sim-stat .sv{font-size:18px;font-weight:600}
+/* 추이 */
 .chart-wrap{position:relative;width:100%;height:200px}
-.chart-toggle{font-size:11px;border:1px solid #e3ddd0;border-radius:20px;padding:4px 10px;cursor:pointer;background:#fff;color:#5a6a60}
-.chart-toggle.on{background:#1a7a4c;color:#fff;border-color:#1a7a4c}
-.section-title{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#1a7a4c;font-weight:700;margin-bottom:12px}
+.period-tab{display:flex;gap:6px;margin-bottom:10px}
+.ptab{padding:5px 12px;border-radius:20px;border:1px solid #e3ddd0;background:#fff;font-size:12px;cursor:pointer;color:#5a6a60}
+.ptab.on{background:#0f3d28;color:#fff;border-color:#0f3d28}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:7px 6px;color:#5a6a60;font-weight:500;border-bottom:1.5px solid #e3ddd0}
+.tbl td{padding:8px 6px;border-bottom:.5px solid #e3ddd0}
+.tbl tr:nth-child(even) td{background:#f9f7f2}
+.up{color:#1a7a4c;font-weight:600}
+.dn{color:#b5482e;font-weight:600}
+.strike{text-decoration:line-through;opacity:.5}
 
 /* 할일 */
-.progress-bar{flex:1;background:#e3ddd0;border-radius:20px;height:8px;overflow:hidden}
+.progress-bar{flex:1;background:#e3ddd0;border-radius:20px;height:7px;overflow:hidden}
 .progress-fill{background:#1a7a4c;height:100%;border-radius:20px;transition:width .4s}
-.progress-text{font-size:14px;font-weight:600;color:#1a7a4c}
-.tag-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6a60;font-weight:600;margin-bottom:8px;padding-left:4px}
-.todo-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:.5px solid #e3ddd0;cursor:pointer}
+.todo-row{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:.5px solid #e3ddd0;cursor:pointer}
 .todo-row:last-child{border-bottom:none}
-.todo-check{width:22px;height:22px;border-radius:6px;border:2px solid #e3ddd0;background:transparent;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s;font-weight:700;font-size:13px}
-.todo-check.done{background:#1a7a4c;border-color:#1a7a4c;color:#fff}
-.todo-text{flex:1;font-size:13.5px;line-height:1.4}
-.todo-text.done{text-decoration:line-through;opacity:.5}
-.todo-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.chk{width:22px;height:22px;border-radius:6px;border:2px solid #e3ddd0;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:12px;font-weight:700}
+.chk.done{background:#1a7a4c;border-color:#1a7a4c;color:#fff}
+.todo-txt{flex:1;font-size:13px;line-height:1.45}
+.todo-txt.done{text-decoration:line-through;opacity:.45}
+.tag-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.tag-lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5a6a60;font-weight:600;margin:12px 0 6px 2px}
 
 /* 바텀 탭 */
 #nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e3ddd0;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0)}
-.nav-btn{flex:1;padding:10px 0 8px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;color:#5a6a60;border-top:2px solid transparent;transition:all .15s}
-.nav-btn.active{color:#1a7a4c;border-top-color:#1a7a4c}
-.nav-icon{font-size:20px}
-.nav-label{font-size:11px;font-weight:400}
-.nav-btn.active .nav-label{font-weight:600}
+.nav-btn{flex:1;padding:10px 0 7px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;color:#5a6a60;border-top:2px solid transparent}
+.nav-btn.on{color:#1a7a4c;border-top-color:#1a7a4c}
+.nav-btn.on .nav-lbl{font-weight:600}
+.nav-icon{font-size:19px}
+.nav-lbl{font-size:10.5px}
 
-/* 로딩 */
-.loading{text-align:center;padding:40px;color:#5a6a60;font-size:14px}
-.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#0f3d28;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast{position:fixed;top:76px;left:50%;transform:translateX(-50%);background:#0f3d28;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
+.loading{text-align:center;padding:40px;color:#9aa89f;font-size:14px}
 </style>
 </head>
 <body>
 
-<!-- 로그인 화면 -->
 <div id="pwScreen">
   <div class="pw-logo">💰</div>
   <div class="pw-title">NPM 자산관리</div>
   <div class="pw-sub">문쌤 개인 재무 대시보드</div>
-  <input class="pw-box" type="email" id="emailInput" placeholder="이메일" style="margin-bottom:8px;letter-spacing:normal;font-size:15px"/>
-  <input class="pw-box" type="password" id="pwInput" placeholder="비밀번호" maxlength="30"/>
-  <button class="pw-btn" onclick="checkPw()" id="loginBtn">로그인</button>
+  <input class="pw-inp" type="email" id="emailInp" placeholder="이메일"/>
+  <input class="pw-inp" type="password" id="pwInp" placeholder="비밀번호" maxlength="30"/>
+  <button class="pw-btn" onclick="login()" id="loginBtn">로그인</button>
   <div class="pw-err" id="pwErr"></div>
 </div>
 
-<!-- 앱 본체 -->
 <div id="app">
-  <div class="header" style="display:flex;justify-content:space-between;align-items:center">
-    <div>
-      <div class="header-eye">NPM 자산관리</div>
-      <div class="header-title" id="headerTitle">자산 현황</div>
+  <div class="header">
+    <div class="header-left">
+      <div class="eye">NPM 자산관리</div>
+      <div class="title" id="hTitle">자산 현황</div>
     </div>
-    <button onclick="logout()" style="background:none;border:1px solid #e3ddd0;border-radius:8px;padding:6px 10px;font-size:12px;color:#5a6a60;cursor:pointer">로그아웃</button>
+    <button class="logout-btn" onclick="logout()">로그아웃</button>
   </div>
-
   <div class="tab-content">
-    <!-- 홈 -->
-    <div class="section active" id="sec-home">
-      <div id="homeContent"><div class="loading">불러오는 중...</div></div>
-    </div>
-    <!-- 추이 -->
-    <div class="section" id="sec-trend">
-      <div id="trendContent"><div class="loading">불러오는 중...</div></div>
-    </div>
-    <!-- 입력 -->
-    <div class="section" id="sec-input">
-      <div id="inputContent"><div class="loading">불러오는 중...</div></div>
-    </div>
-    <!-- 시뮬 -->
-    <div class="section" id="sec-sim">
-      <div id="simContent"><div class="loading">불러오는 중...</div></div>
-    </div>
-    <!-- 할일 -->
-    <div class="section" id="sec-todo">
-      <div id="todoContent"><div class="loading">불러오는 중...</div></div>
-    </div>
+    <div class="section active" id="sec-home"><div class="loading">불러오는 중…</div></div>
+    <div class="section" id="sec-trend"><div class="loading">불러오는 중…</div></div>
+    <div class="section" id="sec-input"><div class="loading">불러오는 중…</div></div>
+    <div class="section" id="sec-todo"><div class="loading">불러오는 중…</div></div>
   </div>
-
   <nav id="nav">
-    <button class="nav-btn active" onclick="switchTab('home',this)"><span class="nav-icon">📊</span><span class="nav-label">홈</span></button>
-    <button class="nav-btn" onclick="switchTab('trend',this)"><span class="nav-icon">📈</span><span class="nav-label">추이</span></button>
-    <button class="nav-btn" onclick="switchTab('input',this)"><span class="nav-icon">✏️</span><span class="nav-label">입력</span></button>
-    <button class="nav-btn" onclick="switchTab('sim',this)"><span class="nav-icon">🏖️</span><span class="nav-label">시뮬</span></button>
-    <button class="nav-btn" onclick="switchTab('todo',this)"><span class="nav-icon">✅</span><span class="nav-label">할일</span></button>
+    <button class="nav-btn on" onclick="go('home',this)"><span class="nav-icon">📊</span><span class="nav-lbl">홈</span></button>
+    <button class="nav-btn" onclick="go('trend',this)"><span class="nav-icon">📈</span><span class="nav-lbl">추이</span></button>
+    <button class="nav-btn" onclick="go('input',this)"><span class="nav-icon">✏️</span><span class="nav-lbl">입력</span></button>
+    <button class="nav-btn" onclick="go('todo',this)"><span class="nav-icon">✅</span><span class="nav-lbl">할일</span></button>
   </nav>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════
-// 설정
-// ═══════════════════════════════════════════
-const CFG = {
-  url: 'https://doptimiubvjiwnjkznxj.supabase.co/rest/v1',
-  authUrl: 'https://doptimiubvjiwnjkznxj.supabase.co/auth/v1',
+// ── 설정 ─────────────────────────────────
+const SB = {
+  url: 'https://doptimiubvjiwnjkznxj.supabase.co',
   key: 'sb_publishable_NgBxcUcjcutamlnQe-mI8w_5TGfZPIc',
 };
+let token = sessionStorage.getItem('npm_tok') || null;
 
-let accessToken = sessionStorage.getItem('npm_token') || null;
-
-// ═══════════════════════════════════════════
-// 자산 메타
-// ═══════════════════════════════════════════
-const ASSETS = [
-  { key:'isa',     label:'ISA',        color:'#0f3d28', icon:'🌐' },
-  { key:'cash',    label:'현금·예적금', color:'#6dbb90', icon:'🏦' },
-  { key:'stocks',  label:'직접주식',    color:'#caa94a', icon:'📈' },
-  { key:'bonds',   label:'개인국채',    color:'#1a7a4c', icon:'🏛️' },
-  { key:'pension', label:'연금저축',    color:'#7aa8d8', icon:'🌱' },
-  { key:'irp',     label:'IRP',         color:'#9aa89f', icon:'💼' },
-  { key:'other',   label:'기타',        color:'#d4b896', icon:'📦' },
-];
-
-// ═══════════════════════════════════════════
-// Supabase API
-// ═══════════════════════════════════════════
-const getH = () => ({
-  'apikey': CFG.key,
-  'Authorization': 'Bearer ' + (accessToken || CFG.key),
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation'
-});
-const db = {
-  async get(table, q='') { const r = await fetch(`${CFG.url}/${table}?${q}`, {headers:getH()}); return r.json(); },
-  async post(table, d)   { const r = await fetch(`${CFG.url}/${table}`, {method:'POST', headers:getH(), body:JSON.stringify(d)}); return r.json(); },
-  async patch(table, q, d){ const r = await fetch(`${CFG.url}/${table}?${q}`, {method:'PATCH', headers:getH(), body:JSON.stringify(d)}); return r.json(); },
+// ── API ──────────────────────────────────
+const H = () => ({ 'apikey':SB.key, 'Authorization':'Bearer '+(token||SB.key), 'Content-Type':'application/json', 'Prefer':'return=representation' });
+const api = {
+  get:    (t,q='')    => fetch(`${SB.url}/rest/v1/${t}?${q}`,{headers:H()}).then(r=>r.json()),
+  post:   (t,d)       => fetch(`${SB.url}/rest/v1/${t}`,{method:'POST',headers:H(),body:JSON.stringify(d)}).then(r=>r.json()),
+  patch:  (t,q,d)     => fetch(`${SB.url}/rest/v1/${t}?${q}`,{method:'PATCH',headers:H(),body:JSON.stringify(d)}).then(r=>r.json()),
+  upsert: (t,d)       => fetch(`${SB.url}/rest/v1/${t}`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(d)}).then(r=>r.json()),
+  del:    (t,q)       => fetch(`${SB.url}/rest/v1/${t}?${q}`,{method:'DELETE',headers:H()}),
 };
 
-// ═══════════════════════════════════════════
-// 유틸
-// ═══════════════════════════════════════════
-const won = n => Math.round((+n||0)/1e4).toLocaleString('ko-KR');
+// ── 유틸 ─────────────────────────────────
+const CAT_LABEL = {cash:'현금·예적금', investment:'투자', pension:'연금·공제', stocks:'주식', bonds:'채권', loan:'대출'};
+const CAT_COLOR = {cash:'#6dbb90', investment:'#0f3d28', pension:'#7aa8d8', stocks:'#caa94a', bonds:'#1a7a4c', loan:'#b5482e'};
+const won = n => Math.round((+n||0)/1e4).toLocaleString('ko-KR') + '만';
 const eok = n => ((+n||0)/1e8).toFixed(2);
-const total = s => ASSETS.reduce((a,m)=>a+(+s[m.key]||0),0);
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
-}
+const toast = msg => { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); };
+const titles = {home:'자산 현황', trend:'월별 변화 추이', input:'계좌별 입력', todo:'액션 플랜'};
 
-// ═══════════════════════════════════════════
-// 로그인 / 로그아웃
-// ═══════════════════════════════════════════
-async function checkPw() {
-  const email = document.getElementById('emailInput').value.trim();
-  const pw = document.getElementById('pwInput').value;
+// ── 상태 ─────────────────────────────────
+let accounts = [], snapshots = {}, loans = [], charts = {};
+let currentDate = new Date().toISOString().slice(0,10);
+
+// ── 로그인 ───────────────────────────────
+async function login() {
+  const email = document.getElementById('emailInp').value.trim();
+  const pw = document.getElementById('pwInp').value;
   const btn = document.getElementById('loginBtn');
   const err = document.getElementById('pwErr');
-  if (!email || !pw) { err.textContent = '이메일과 비밀번호를 입력해주세요'; return; }
-  btn.textContent = '로그인 중...'; btn.disabled = true;
+  if(!email||!pw){err.textContent='이메일과 비밀번호를 입력해주세요';return;}
+  btn.textContent='로그인 중…'; btn.disabled=true;
   try {
-    const res = await fetch(`${CFG.authUrl}/token?grant_type=password`, {
-      method: 'POST',
-      headers: { 'apikey': CFG.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pw })
+    const r = await fetch(`${SB.url}/auth/v1/token?grant_type=password`,{
+      method:'POST', headers:{'apikey':SB.key,'Content-Type':'application/json'},
+      body:JSON.stringify({email,password:pw})
     });
-    const data = await res.json();
-    if (data.access_token) {
-      accessToken = data.access_token;
-      sessionStorage.setItem('npm_token', accessToken);
-      document.getElementById('pwScreen').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      init();
-    } else {
-      err.textContent = '이메일 또는 비밀번호가 틀렸습니다';
-      btn.textContent = '로그인'; btn.disabled = false;
-    }
-  } catch(e) {
-    err.textContent = '로그인 오류가 발생했습니다';
-    btn.textContent = '로그인'; btn.disabled = false;
-  }
+    const d = await r.json();
+    if(d.access_token){
+      token=d.access_token; sessionStorage.setItem('npm_tok',token);
+      document.getElementById('pwScreen').style.display='none';
+      document.getElementById('app').style.display='block';
+      await init();
+    } else { err.textContent='이메일 또는 비밀번호가 틀렸습니다'; btn.textContent='로그인'; btn.disabled=false; }
+  } catch(e){ err.textContent='오류가 발생했습니다'; btn.textContent='로그인'; btn.disabled=false; }
 }
 async function logout() {
-  await fetch(`${CFG.authUrl}/logout`, {
-    method: 'POST',
-    headers: { 'apikey': CFG.key, 'Authorization': 'Bearer ' + accessToken }
-  });
-  sessionStorage.removeItem('npm_token');
-  accessToken = null;
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('pwScreen').style.display = 'flex';
-  document.getElementById('pwInput').value = '';
-  document.getElementById('emailInput').value = '';
+  await fetch(`${SB.url}/auth/v1/logout`,{method:'POST',headers:{'apikey':SB.key,'Authorization':'Bearer '+token}});
+  sessionStorage.removeItem('npm_tok'); token=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('pwScreen').style.display='flex';
 }
-document.getElementById('pwInput').addEventListener('keydown', e=>{ if(e.key==='Enter') checkPw(); });
-// 세션 복원
-if (accessToken) {
-  document.getElementById('pwScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-}
+document.getElementById('pwInp').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+if(token){document.getElementById('pwScreen').style.display='none';document.getElementById('app').style.display='block';}
 
-// ═══════════════════════════════════════════
-// 탭 전환
-// ═══════════════════════════════════════════
-const titles = { home:'자산 현황', trend:'월별 변화 추이', input:'월말 입력', sim:'노후 시뮬레이터', todo:'액션 플랜' };
-let currentTab = 'home';
-function switchTab(id, btn) {
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('sec-'+id).classList.add('active');
-  btn.classList.add('active');
-  document.getElementById('headerTitle').textContent = titles[id];
-  currentTab = id;
-  if (id==='home') renderHome();
-  if (id==='trend') renderTrend();
-  if (id==='input') renderInput();
-  if (id==='sim') renderSim();
-  if (id==='todo') renderTodo();
-}
-
-// ═══════════════════════════════════════════
-// 상태
-// ═══════════════════════════════════════════
-let snap = null, allSnaps = [], simSet = null, actions = [], simChart = null, homeChart = null, trendChart = null, realView = false;
-
+// ── 초기 로드 ────────────────────────────
 async function init() {
   try {
-    allSnaps = await db.get('snapshots','order=snapshot_date.asc');
-    snap = allSnaps[allSnaps.length - 1] || {};
-    const sims = await db.get('sim_settings','id=eq.1');
-    simSet = sims[0] || { retire_age:52, save_monthly:490, return_rate:4.0, inflation:2.5, living_active:400, living_slow:360, living_old:300, alba:100 };
-    actions = await db.get('action_items','order=sort_order.asc');
+    accounts = await api.get('accounts_master','order=sort_order.asc');
+    const snaps = await api.get('account_snapshots','order=snapshot_date.asc');
+    const ls = await api.get('loan_snapshots','order=snapshot_date.asc');
+    loans = ls;
+    // 날짜별로 그룹화
+    snapshots = {};
+    for(const s of snaps){
+      if(!snapshots[s.snapshot_date]) snapshots[s.snapshot_date] = {};
+      snapshots[s.snapshot_date][s.account_name] = {amount:s.amount, status:s.status};
+    }
     renderHome();
-  } catch(e) { console.error(e); }
+  } catch(e){ console.error('init error',e); }
 }
 
-// ═══════════════════════════════════════════
-// 홈 화면
-// ═══════════════════════════════════════════
+// ── 탭 전환 ──────────────────────────────
+function go(id, btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('sec-'+id).classList.add('active');
+  btn.classList.add('on');
+  document.getElementById('hTitle').textContent = titles[id];
+  if(id==='home') renderHome();
+  if(id==='trend') renderTrend();
+  if(id==='input') renderInput();
+  if(id==='todo') renderTodo();
+}
+
+// ── 집계 헬퍼 ────────────────────────────
+function totalForDate(dt) {
+  const s = snapshots[dt]||{};
+  return Object.values(s).reduce((a,v)=>a+(+v.amount||0),0);
+}
+function catTotalForDate(dt, cat) {
+  const s = snapshots[dt]||{};
+  return accounts.filter(a=>a.category===cat).reduce((sum,a)=>{
+    return sum + (+( (s[a.name]||{}).amount||0));
+  },0);
+}
+function latestDate() {
+  const dates = Object.keys(snapshots).sort();
+  return dates[dates.length-1] || null;
+}
+function allDates() { return Object.keys(snapshots).sort(); }
+function loanForDate(dt) {
+  const l = loans.find(x=>x.snapshot_date===dt);
+  return l ? +l.amount : 0;
+}
+
+// ── 홈 화면 ──────────────────────────────
 function renderHome() {
-  if (!snap) return;
-  const tot = total(snap);
-  const loan = +snap.loan||0;
+  const dt = latestDate();
+  if(!dt){ document.getElementById('homeContent')?.remove(); return; }
+  const tot = totalForDate(dt);
+  const loan = loanForDate(dt);
   const net = tot - loan;
+  const s = snapshots[dt]||{};
 
-  document.getElementById('homeContent').innerHTML = `
+  const cats = ['cash','investment','pension','stocks','bonds'];
+  let html = `
     <div class="hero">
-      <div class="hero-label">총 자산</div>
-      <div class="hero-big">${eok(tot)}억</div>
-      <div class="hero-row">
-        <div class="hero-item"><div class="h-l">순자산</div><div class="h-v">${eok(net)}억</div></div>
-        <div class="hero-item"><div class="h-l">대출</div><div class="h-v">${eok(loan)}억</div></div>
-        <div class="hero-item"><div class="h-l">기준일</div><div class="h-v">${snap.snapshot_date||'-'}</div></div>
+      <div class="lbl">총 자산 · ${dt}</div>
+      <div class="big">${eok(tot)}억</div>
+      <div class="row">
+        <div class="item"><div class="hl">순자산</div><div class="hv">${eok(net)}억</div></div>
+        <div class="item"><div class="hl">대출</div><div class="hv">${eok(loan)}억</div></div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-title">자산 구성</div>
-      <div class="chart-wrap"><canvas id="homeChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">자산 상세</div>
-      ${ASSETS.map(m=>{
-        const v = +snap[m.key]||0;
-        return `<div class="asset-row">
-          <div class="asset-left">
-            <div class="asset-dot" style="background:${m.color}"></div>
-            <span class="asset-name">${m.icon} ${m.label}</span>
-          </div>
-          <div>
-            <div class="asset-amt">${won(v)}만원</div>
-            <div class="asset-pct">${((v/tot)*100).toFixed(1)}%</div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-  `;
+    </div>`;
 
-  const ctx = document.getElementById('homeChart').getContext('2d');
-  if (homeChart) homeChart.destroy();
-  homeChart = new Chart(ctx, {
-    type:'doughnut',
-    data:{ labels: ASSETS.map(m=>m.label), datasets:[{ data: ASSETS.map(m=>Math.round((+snap[m.key]||0)/1e4)), backgroundColor: ASSETS.map(m=>m.color), borderWidth:2, borderColor:'#fff' }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ font:{size:11}, padding:8, boxWidth:10 } }, tooltip:{ callbacks:{ label: c=>`${c.label}: ${c.parsed.toLocaleString()}만원` } } } }
-  });
-}
-
-// ═══════════════════════════════════════════
-// 추이 화면
-// ═══════════════════════════════════════════
-function renderTrend() {
-  if (!allSnaps.length) return;
-  const labels = allSnaps.map(s => s.snapshot_date.slice(2,7).replace('-','/'));
-  const totals = allSnaps.map(s => total(s));
-  const nets   = allSnaps.map(s => net(s, s.loan));
-  const loans  = allSnaps.map(s => +(s.loan)||0);
-
-  // 월별 증감
-  const changes = allSnaps.map((s,i) => {
-    if(i===0) return 0;
-    return total(s) - total(allSnaps[i-1]);
-  });
-
-  // 최신 vs 최초 비교
-  const first = allSnaps[0], last = allSnaps[allSnaps.length-1];
-  const growthPct = (((total(last)-total(first))/total(first))*100).toFixed(1);
-  const months = allSnaps.length - 1;
-
-  document.getElementById('trendContent').innerHTML = `
-    <div class="hero">
-      <div class="hero-label">전체 기간 성장</div>
-      <div class="hero-big">+${growthPct}%</div>
-      <div class="hero-row">
-        <div class="hero-item"><div class="h-l">기간</div><div class="h-v">${months}개월</div></div>
-        <div class="hero-item"><div class="h-l">시작</div><div class="h-v">${(total(first)/1e8).toFixed(2)}억</div></div>
-        <div class="hero-item"><div class="h-l">현재</div><div class="h-v">${(total(last)/1e8).toFixed(2)}억</div></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">총자산 · 순자산 추이</div>
-      <div class="chart-wrap" style="height:220px"><canvas id="trendChart1"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">월별 자산 증가액</div>
-      <div class="chart-wrap" style="height:180px"><canvas id="trendChart2"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">자산 구성 변화</div>
-      <div class="chart-wrap" style="height:220px"><canvas id="trendChart3"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">월별 스냅샷</div>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:400px">
-          <thead>
-            <tr style="border-bottom:1.5px solid #e3ddd0">
-              <th style="text-align:left;padding:7px 6px;color:#5a6a60;font-weight:500">날짜</th>
-              <th style="text-align:right;padding:7px 6px;color:#5a6a60;font-weight:500">총자산</th>
-              <th style="text-align:right;padding:7px 6px;color:#5a6a60;font-weight:500">순자산</th>
-              <th style="text-align:right;padding:7px 6px;color:#5a6a60;font-weight:500">증감</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${allSnaps.map((s,i)=>{
-              const tot = total(s);
-              const n = net(s, s.loan);
-              const chg = i===0 ? 0 : tot - total(allSnaps[i-1]);
-              const chgStr = i===0 ? '-' : (chg>=0?'+':'')+Math.round(chg/1e4).toLocaleString()+'만';
-              const chgColor = chg>0?'#1a7a4c':chg<0?'#b5482e':'#5a6a60';
-              return `<tr style="border-bottom:.5px solid #e3ddd0;${i%2===1?'background:#f9f7f2':''}">
-                <td style="padding:8px 6px;font-weight:500">${s.snapshot_date.slice(2,10)}</td>
-                <td style="padding:8px 6px;text-align:right">${(tot/1e8).toFixed(2)}억</td>
-                <td style="padding:8px 6px;text-align:right">${(n/1e8).toFixed(2)}억</td>
-                <td style="padding:8px 6px;text-align:right;color:${chgColor};font-weight:600">${chgStr}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-
-  // 차트 1: 총자산 vs 순자산
-  const ctx1 = document.getElementById('trendChart1').getContext('2d');
-  new Chart(ctx1, {
-    type:'line',
-    data:{
-      labels,
-      datasets:[
-        { label:'총자산', data:totals.map(v=>parseFloat((v/1e8).toFixed(2))), borderColor:'#0f3d28', backgroundColor:'rgba(15,61,40,0.08)', fill:true, borderWidth:2.2, pointRadius:3, tension:0.3 },
-        { label:'순자산', data:nets.map(v=>parseFloat((v/1e8).toFixed(2))), borderColor:'#1a7a4c', backgroundColor:'transparent', borderWidth:2, pointRadius:3, tension:0.3, borderDash:[4,3] },
-      ]
-    },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:12 } }, tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}억`}} }, scales:{ x:{ticks:{font:{size:10}}}, y:{ticks:{font:{size:10},callback:v=>v+'억'}} } }
-  });
-
-  // 차트 2: 월별 증감
-  const ctx2 = document.getElementById('trendChart2').getContext('2d');
-  new Chart(ctx2, {
-    type:'bar',
-    data:{
-      labels: labels.slice(1),
-      datasets:[{ label:'증감', data:changes.slice(1).map(v=>Math.round(v/1e4)), backgroundColor:changes.slice(1).map(v=>v>=0?'#1a7a4c':'#b5482e'), borderRadius:4 }]
-    },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString()}만원`}} }, scales:{ x:{ticks:{font:{size:10}}}, y:{ticks:{font:{size:10},callback:v=>v+'만'}} } }
-  });
-
-  // 차트 3: 자산 구성 스택
-  const ctx3 = document.getElementById('trendChart3').getContext('2d');
-  new Chart(ctx3, {
-    type:'bar',
-    data:{
-      labels,
-      datasets: ASSETS.map(m=>({
-        label: m.label,
-        data: allSnaps.map(s=>Math.round((+s[m.key]||0)/1e4)),
-        backgroundColor: m.color,
-        stack: 'assets',
-        borderWidth: 0,
-      }))
-    },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ font:{size:10}, boxWidth:10, padding:6 } }, tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toLocaleString()}만`}} }, scales:{ x:{ticks:{font:{size:10}}, stacked:true}, y:{ticks:{font:{size:10},callback:v=>v+'만'}, stacked:true} } }
-  });
-}
-
-// ═══════════════════════════════════════════
-// 입력 화면
-// ═══════════════════════════════════════════
-function renderInput() {
-  if (!snap) return;
-  document.getElementById('inputContent').innerHTML = `
-    <div class="card">
-      <div class="card-title">월말정산 입력</div>
-      ${ASSETS.map(m=>`
-        <div class="input-group">
-          <div class="input-label">${m.icon} ${m.label}</div>
-          <input class="input-field" type="number" id="inp_${m.key}" value="${+snap[m.key]||0}"/>
+  for(const cat of cats){
+    const catAccts = accounts.filter(a=>a.category===cat);
+    if(!catAccts.length) continue;
+    const catTotal = catAccts.reduce((sum,a)=>sum+(+((s[a.name]||{}).amount||0)),0);
+    if(catTotal===0) continue;
+    html += `<div class="cat-hdr">${CAT_LABEL[cat]} <span style="color:#9aa89f;font-weight:400;text-transform:none;letter-spacing:0">${won(catTotal)}원</span></div>`;
+    html += `<div class="card">`;
+    for(const a of catAccts){
+      const info = s[a.name]||{};
+      const amt = +info.amount||0;
+      if(amt===0) continue;
+      const expired = info.status==='만기해지';
+      html += `<div class="acct-row">
+        <div class="acct-left">
+          <div class="acct-dot" style="background:${CAT_COLOR[cat]}"></div>
+          <span class="acct-name ${expired?'strike':''}">${a.name}</span>
+          ${expired?'<span class="badge badge-expired">만기해지</span>':''}
         </div>
-      `).join('')}
-      <div class="divider"></div>
-      <div class="input-group">
-        <div class="input-label" style="color:#b5482e">💳 대출 잔액</div>
-        <input class="input-field" type="number" id="inp_loan" value="${+snap.loan||0}"/>
+        <div class="acct-amt">${won(amt)}원</div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  document.getElementById('sec-home').innerHTML = html;
+}
+
+// ── 추이 화면 ────────────────────────────
+let trendMode = 'total';
+function renderTrend() {
+  const dates = allDates();
+  if(!dates.length){document.getElementById('sec-trend').innerHTML='<div class="loading">데이터 없음</div>';return;}
+  const labels = dates.map(d=>d.slice(2,7).replace('-','/'));
+  const totals = dates.map(totalForDate);
+  const nets = dates.map(d=>totalForDate(d)-loanForDate(d));
+  const changes = dates.map((d,i)=>i===0?0:totalForDate(d)-totalForDate(dates[i-1]));
+
+  const first=totals[0], last=totals[totals.length-1];
+  const pct = (((last-first)/first)*100).toFixed(1);
+
+  let html = `
+    <div class="hero">
+      <div class="lbl">전체 기간 성장</div>
+      <div class="big">+${pct}%</div>
+      <div class="row">
+        <div class="item"><div class="hl">기간</div><div class="hv">${dates.length-1}개월</div></div>
+        <div class="item"><div class="hl">시작</div><div class="hv">${eok(first)}억</div></div>
+        <div class="item"><div class="hl">현재</div><div class="hv">${eok(last)}억</div></div>
       </div>
-      <div class="input-group">
-        <div class="input-label">📅 기준일</div>
-        <input class="input-field" type="date" id="inp_date" value="${new Date().toISOString().slice(0,10)}"/>
-      </div>
-      <button class="save-btn" id="saveBtn" onclick="saveSnapshot()">저장하기</button>
     </div>
+
+    <div class="card">
+      <div class="card-title">총자산 vs 순자산</div>
+      <div class="chart-wrap"><canvas id="ch1"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">월별 증가액</div>
+      <div class="chart-wrap" style="height:160px"><canvas id="ch2"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">카테고리별 구성 변화</div>
+      <div class="chart-wrap"><canvas id="ch3"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">계좌별 상세 추이</div>`;
+
+  // 계좌별 테이블
+  const cats = ['cash','investment','pension','stocks','bonds'];
+  for(const cat of cats){
+    const catAccts = accounts.filter(a=>a.category===cat);
+    let hasData = false;
+    for(const a of catAccts){
+      if(dates.some(d=>(snapshots[d]||{})[a.name]?.amount>0)){hasData=true;break;}
+    }
+    if(!hasData) continue;
+    html += `<div style="font-size:11px;font-weight:700;color:${CAT_COLOR[cat]};margin:10px 0 4px;text-transform:uppercase;letter-spacing:.08em">${CAT_LABEL[cat]}</div>`;
+    html += `<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>계좌</th>${labels.map(l=>`<th style="text-align:right;white-space:nowrap">${l}</th>`).join('')}</tr></thead><tbody>`;
+    for(const a of catAccts){
+      const vals = dates.map(d=>{
+        const info=(snapshots[d]||{})[a.name]||{};
+        return {amt:+info.amount||0, status:info.status};
+      });
+      if(vals.every(v=>v.amt===0)) continue;
+      html += `<tr><td style="white-space:nowrap;font-weight:500">${a.name}</td>`;
+      for(const v of vals){
+        const cell = v.amt>0 ? won(v.amt) : (v.status==='만기해지'?'<span style="color:#b5482e;font-size:10px">만기</span>':'-');
+        html += `<td style="text-align:right;white-space:nowrap">${cell}</td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+
+  // 월별 요약 테이블
+  html += `</div><div class="card"><div class="card-title">월별 요약</div>
+    <table class="tbl"><thead><tr><th>날짜</th><th style="text-align:right">총자산</th><th style="text-align:right">순자산</th><th style="text-align:right">전월비</th></tr></thead><tbody>`;
+  for(let i=0;i<dates.length;i++){
+    const chg = changes[i];
+    const chgStr = i===0?'-':(chg>=0?'+':'')+won(chg)+'원';
+    const cls = chg>0?'up':chg<0?'dn':'';
+    html += `<tr><td>${dates[i].slice(2,10)}</td><td style="text-align:right">${eok(totals[i])}억</td><td style="text-align:right">${eok(nets[i])}억</td><td style="text-align:right" class="${cls}">${chgStr}</td></tr>`;
+  }
+  html += `</tbody></table></div>`;
+  document.getElementById('sec-trend').innerHTML = html;
+
+  // 차트 그리기
+  const gc = id => document.getElementById(id)?.getContext('2d');
+  const g1=gc('ch1'),g2=gc('ch2'),g3=gc('ch3');
+  if(charts.c1) charts.c1.destroy(); if(charts.c2) charts.c2.destroy(); if(charts.c3) charts.c3.destroy();
+
+  if(g1) charts.c1 = new Chart(g1,{type:'line',data:{labels,datasets:[
+    {label:'총자산',data:totals.map(v=>+(v/1e8).toFixed(2)),borderColor:'#0f3d28',backgroundColor:'rgba(15,61,40,0.07)',fill:true,borderWidth:2.2,pointRadius:3,tension:0.3},
+    {label:'순자산',data:nets.map(v=>+(v/1e8).toFixed(2)),borderColor:'#1a7a4c',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0.3,borderDash:[4,3]},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:12}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}억`}}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10},callback:v=>v+'억'}}}}});
+
+  if(g2) charts.c2 = new Chart(g2,{type:'bar',data:{labels:labels.slice(1),datasets:[{data:changes.slice(1).map(v=>Math.round(v/1e4)),backgroundColor:changes.slice(1).map(v=>v>=0?'#1a7a4c':'#b5482e'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString()}만원`}}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10},callback:v=>v+'만'}}}}});
+
+  if(g3){
+    const cats3=['cash','investment','pension','stocks','bonds'];
+    charts.c3 = new Chart(g3,{type:'bar',data:{labels,datasets:cats3.map(cat=>({label:CAT_LABEL[cat],data:dates.map(d=>Math.round(catTotalForDate(d,cat)/1e4)),backgroundColor:CAT_COLOR[cat],stack:'s',borderWidth:0}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:6}}},scales:{x:{ticks:{font:{size:10}},stacked:true},y:{ticks:{font:{size:10},callback:v=>v+'만'},stacked:true}}}});
+  }
+}
+
+// ── 입력 화면 ────────────────────────────
+function renderInput() {
+  const dt = latestDate() || new Date().toISOString().slice(0,10);
+  const s = snapshots[dt]||{};
+  const loan = loanForDate(dt);
+  const cats = ['cash','investment','pension','stocks','bonds'];
+
+  let html = `<div class="card"><div class="card-title">기준일</div>
+    <input class="inp-field" type="date" id="inp_date" value="${new Date().toISOString().slice(0,10)}" style="margin-bottom:4px"/>
+    <div style="font-size:11px;color:#9aa89f">이전 달 데이터를 불러와 수정하거나, 새 날짜로 입력하세요</div>
+    <button onclick="loadDateData()" style="margin-top:8px;padding:8px 14px;border:1px solid #1a7a4c;border-radius:8px;background:transparent;color:#1a7a4c;font-size:13px;cursor:pointer">이 날짜 데이터 불러오기</button>
+  </div>`;
+
+  for(const cat of cats){
+    const catAccts = accounts.filter(a=>a.category===cat && a.active);
+    html += `<div class="cat-hdr">${CAT_LABEL[cat]}</div><div class="card" id="cat_${cat}">`;
+    for(const a of catAccts){
+      const info = s[a.name]||{};
+      const amt = +info.amount||0;
+      html += `<div class="inp-group">
+        <div class="inp-label">
+          <span>${a.name}</span>
+          <select class="status-sel" id="status_${encodeURI(a.name)}">
+            <option value="active" ${info.status!=='만기해지'?'selected':''}>운용중</option>
+            <option value="만기해지" ${info.status==='만기해지'?'selected':''}>만기해지</option>
+          </select>
+        </div>
+        <input class="inp-field" type="number" id="amt_${encodeURI(a.name)}" value="${amt}" placeholder="0" oninput="calcPreview()"/>
+      </div>`;
+    }
+    html += `<button class="add-acct-btn" onclick="addAccount('${cat}')">+ ${CAT_LABEL[cat]} 계좌 추가</button></div>`;
+  }
+
+  html += `<div class="cat-hdr">대출</div><div class="card">
+    <div class="inp-group"><div class="inp-label"><span>대출 잔액</span></div>
+    <input class="inp-field" type="number" id="amt_loan" value="${loan}" oninput="calcPreview()"/>
+    </div></div>
     <div class="card">
       <div class="card-title">입력 후 총자산</div>
-      <div id="calcPreview" style="font-size:28px;font-weight:600;color:#1a7a4c"></div>
-      <div id="calcNet" style="font-size:13px;color:#5a6a60;margin-top:4px"></div>
+      <div id="preview" style="font-size:28px;font-weight:600;color:#1a7a4c"></div>
+      <div id="preview_net" style="font-size:13px;color:#5a6a60;margin-top:4px"></div>
     </div>
-  `;
-  ASSETS.forEach(m => {
-    document.getElementById('inp_'+m.key).addEventListener('input', updatePreview);
+    <button class="save-btn" id="saveBtn" onclick="saveAll()">저장하기</button>
+    <div style="height:20px"></div>`;
+
+  document.getElementById('sec-input').innerHTML = html;
+  calcPreview();
+}
+
+function calcPreview(){
+  let tot=0;
+  accounts.forEach(a=>{
+    const el=document.getElementById('amt_'+encodeURI(a.name));
+    if(el) tot+=+(el.value)||0;
   });
-  document.getElementById('inp_loan').addEventListener('input', updatePreview);
-  updatePreview();
+  const loan=+(document.getElementById('amt_loan')?.value)||0;
+  const p=document.getElementById('preview'), pn=document.getElementById('preview_net');
+  if(p) p.textContent=eok(tot)+'억원';
+  if(pn) pn.textContent='순자산 '+eok(tot-loan)+'억원';
 }
-function updatePreview() {
-  const obj = {};
-  ASSETS.forEach(m => obj[m.key] = +(document.getElementById('inp_'+m.key)||{value:0}).value||0);
-  const tot = Object.values(obj).reduce((a,b)=>a+b,0);
-  const loan = +(document.getElementById('inp_loan')||{value:0}).value||0;
-  const prev = document.getElementById('calcPreview');
-  const netEl = document.getElementById('calcNet');
-  if(prev) prev.textContent = eok(tot)+'억원';
-  if(netEl) netEl.textContent = '순자산 '+eok(tot-loan)+'억원';
+
+async function loadDateData(){
+  const dt=document.getElementById('inp_date').value;
+  const s=snapshots[dt]||{};
+  const loan=(loans.find(l=>l.snapshot_date===dt)||{}).amount||0;
+  accounts.forEach(a=>{
+    const el=document.getElementById('amt_'+encodeURI(a.name));
+    const sel=document.getElementById('status_'+encodeURI(a.name));
+    const info=s[a.name]||{};
+    if(el) el.value=+info.amount||0;
+    if(sel) sel.value=info.status||'active';
+  });
+  const lel=document.getElementById('amt_loan');
+  if(lel) lel.value=loan;
+  calcPreview();
+  toast('📥 '+dt+' 데이터 불러옴');
 }
-async function saveSnapshot() {
-  const btn = document.getElementById('saveBtn');
-  btn.textContent = '저장 중...'; btn.disabled = true;
-  const d = { snapshot_date: document.getElementById('inp_date').value };
-  ASSETS.forEach(m => d[m.key] = +(document.getElementById('inp_'+m.key).value)||0);
-  d.loan = +(document.getElementById('inp_loan').value)||0;
+
+async function saveAll(){
+  const btn=document.getElementById('saveBtn');
+  const dt=document.getElementById('inp_date').value;
+  btn.textContent='저장 중…'; btn.disabled=true;
   try {
-    const res = await db.post('snapshots', d);
-    const newSnap = res[0] || d;
-    allSnaps = [...allSnaps.filter(s=>s.snapshot_date!==d.snapshot_date), newSnap].sort((a,b)=>a.snapshot_date.localeCompare(b.snapshot_date));
-    snap = allSnaps[allSnaps.length-1];
-    btn.textContent = '✓ 저장 완료!'; btn.classList.add('success');
-    showToast('💾 저장됐어요!');
-    setTimeout(()=>{ btn.textContent='저장하기'; btn.classList.remove('success'); btn.disabled=false; }, 2000);
-  } catch(e) { btn.textContent='오류 발생'; btn.disabled=false; }
-}
-
-// ═══════════════════════════════════════════
-// 노후 시뮬
-// ═══════════════════════════════════════════
-const START=277732828, AGE0=41, YEAR0=2026, PENSION_AGE=65, PENSION=33600000, SG=0.03;
-function simulate(s) {
-  const r=s.return_rate/100, f=s.inflation/100;
-  const living = a => (a<=64?s.living_active:a<=74?s.living_slow:s.living_old)*1e4*12;
-  let bal=START, dep=null, rows=[];
-  const AGES=[45,50,52,55,60,65,70,75,80,86];
-  for (let age=AGE0; age<=86; age++) {
-    const yr=YEAR0+(age-AGE0); bal*=(1+r);
-    if (age<=s.retire_age) bal+=s.save_monthly*1e4*12*(1+SG)**(age-AGE0);
-    else {
-      bal-=living(age)*(1+f)**(yr-2024);
-      if(age<=64) bal+=s.alba*1e4*12;
-      if(age>=PENSION_AGE) bal+=PENSION;
-    }
-    if(bal<0&&dep===null) dep=age;
-    if(AGES.includes(age)) rows.push({age, bal: parseFloat((bal/1e8).toFixed(2))});
-  }
-  return { dep, rows, end: rows[rows.length-1].bal, peak: Math.max(...rows.map(r=>r.bal)) };
-}
-
-function renderSim() {
-  if (!simSet) return;
-  const s = simSet;
-  const sim = simulate(s);
-  const ok = sim.dep===null;
-
-  document.getElementById('simContent').innerHTML = `
-    <div class="sim-result ${ok?'sim-ok':'sim-bad'}">
-      <div class="sim-label">자산 고갈 시점</div>
-      <div class="sim-big">${ok?'86세 유지 ✓':sim.dep+'세'}</div>
-      <div class="sim-note">${ok?'목표 시점까지 자금이 버팁니다':'목표(86세)보다 '+(86-sim.dep)+'년 부족'}</div>
-      <div class="sim-stats">
-        <div class="sim-stat"><div class="sl">자산 정점</div><div class="sv">${sim.peak}억</div></div>
-        <div class="sim-stat"><div class="sl">86세 잔고</div><div class="sv">${sim.end}억</div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span class="card-title" style="margin:0">잔고 추이</span>
-        <button class="chart-toggle ${realView?'on':''}" onclick="toggleRealView()">
-          ${realView?'오늘 가치':'명목'}
-        </button>
-      </div>
-      <div class="chart-wrap"><canvas id="simChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="section-title">저축 · 수익</div>
-      ${slider('retire_age','은퇴 나이',s.retire_age,'세',48,65,1,'저축 종료 시점. 가장 강력한 변수')}
-      ${slider('save_monthly','월 저축액',s.save_monthly,'만원',100,1000,10,'')}
-      ${slider('return_rate','연 수익률',s.return_rate,'%',1,8,0.1,'')}
-      ${slider('inflation','물가상승률',s.inflation,'%',1.5,4.5,0.1,'현실적 기준: 3.0%')}
-    </div>
-    <div class="card">
-      <div class="section-title">노후 생활비 (오늘 구매력)</div>
-      ${slider('living_active','활동기 ~64세',s.living_active,'만원',250,700,10,'부부 적정 330만보다 여유')}
-      ${slider('living_slow','둔화기 65~74세',s.living_slow,'만원',200,600,10,'')}
-      ${slider('living_old','고령기 75세~',s.living_old,'만원',150,500,10,'')}
-      ${slider('alba','알바 수입 (52~64세)',s.alba,'만원',0,300,10,'')}
-    </div>
-  `;
-  drawSimChart(sim);
-  document.querySelectorAll('.sim-slider').forEach(el => {
-    el.addEventListener('input', async e => {
-      const key = e.target.dataset.key;
-      simSet[key] = parseFloat(e.target.value);
-      document.getElementById('sv_'+key).textContent = simSet[key].toLocaleString('ko-KR');
-      const ns = simulate(simSet);
-      updateSimResult(ns);
-      drawSimChart(ns);
-      await db.patch('sim_settings','id=eq.1',simSet);
+    // 계좌별 upsert
+    const rows=[];
+    accounts.forEach(a=>{
+      const el=document.getElementById('amt_'+encodeURI(a.name));
+      const sel=document.getElementById('status_'+encodeURI(a.name));
+      if(el){
+        const amt=+(el.value)||0;
+        const status=(sel?.value)||'active';
+        if(amt>0||status==='만기해지'){
+          rows.push({snapshot_date:dt, account_name:a.name, amount:amt, status});
+        }
+      }
     });
-  });
-}
-function slider(key, label, val, unit, min, max, step, hint) {
-  return `<div class="slider-group">
-    <div class="slider-row">
-      <span class="slider-label">${label}</span>
-      <span><span class="slider-val" id="sv_${key}">${val.toLocaleString('ko-KR')}</span><span class="slider-unit">${unit}</span></span>
-    </div>
-    <input type="range" class="sim-slider" data-key="${key}" min="${min}" max="${max}" step="${step}" value="${val}"/>
-    ${hint?`<div class="slider-hint">${hint}</div>`:''}
-  </div>`;
-}
-function toggleRealView() { realView=!realView; renderSim(); }
-function updateSimResult(sim) {
-  const ok=sim.dep===null;
-  const rc=document.querySelector('.sim-result');
-  rc.className='sim-result '+(ok?'sim-ok':'sim-bad');
-  rc.querySelector('.sim-big').textContent = ok?'86세 유지 ✓':sim.dep+'세';
-  rc.querySelector('.sim-note').textContent = ok?'목표 시점까지 자금이 버팁니다':'목표(86세)보다 '+(86-sim.dep)+'년 부족';
-  const stats=rc.querySelectorAll('.sv');
-  stats[0].textContent=sim.peak+'억'; stats[1].textContent=sim.end+'억';
-}
-function drawSimChart(sim) {
-  const ctx=document.getElementById('simChart');
-  if(!ctx) return;
-  if(simChart) simChart.destroy();
-  const data = realView ? sim.rows.map(r=>parseFloat((r.bal/Math.pow(1.025,r.age-AGE0)).toFixed(2))) : sim.rows.map(r=>r.bal);
-  const ok=sim.dep===null;
-  simChart=new Chart(ctx.getContext('2d'),{
-    type:'line',
-    data:{ labels:sim.rows.map(r=>r.age+'세'), datasets:[{ data, borderColor:ok?'#1a7a4c':'#b5482e', backgroundColor:'transparent', borderWidth:2.4, pointRadius:3, tension:0.3 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>c.parsed.y+'억'}} }, scales:{ x:{ticks:{font:{size:10}}}, y:{ticks:{font:{size:10},callback:v=>v+'억'}} } }
-  });
+    if(rows.length) await api.upsert('account_snapshots', rows);
+    // 대출
+    const loanAmt=+(document.getElementById('amt_loan')?.value)||0;
+    if(loanAmt>0) await api.upsert('loan_snapshots',[{snapshot_date:dt, amount:loanAmt}]);
+    // 상태 업데이트
+    if(!snapshots[dt]) snapshots[dt]={};
+    rows.forEach(r=>{ snapshots[dt][r.account_name]={amount:r.amount, status:r.status}; });
+    const li=loans.findIndex(l=>l.snapshot_date===dt);
+    if(li>=0) loans[li].amount=loanAmt; else loans.push({snapshot_date:dt,amount:loanAmt});
+    btn.textContent='✓ 저장 완료!'; btn.classList.add('ok');
+    toast('💾 저장됐어요!');
+    setTimeout(()=>{btn.textContent='저장하기';btn.classList.remove('ok');btn.disabled=false;},2000);
+  } catch(e){ btn.textContent='오류 발생'; btn.disabled=false; }
 }
 
-// ═══════════════════════════════════════════
-// 할일
-// ═══════════════════════════════════════════
-function renderTodo() {
-  if (!actions.length) return;
-  const done=actions.filter(a=>a.done).length;
-  const tags=[...new Set(actions.map(a=>a.tag))];
-
-  document.getElementById('todoContent').innerHTML = `
-    <div class="card">
-      <div class="card-title">진행 현황</div>
-      <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
-        <div class="progress-bar"><div class="progress-fill" style="width:${(done/actions.length*100).toFixed(0)}%"></div></div>
-        <span class="progress-text">${done}/${actions.length}</span>
-      </div>
-    </div>
-    ${tags.map(tag=>`
-      <div class="tag-label">${tag}</div>
-      <div class="card">
-        ${actions.filter(a=>a.tag===tag).map(a=>`
-          <div class="todo-row" onclick="toggleTodo(${a.id})" style="opacity:${a.done?.5:1}">
-            <div class="todo-check ${a.done?'done':''}">${a.done?'✓':''}</div>
-            <div class="todo-text ${a.done?'done':''}">${a.text}</div>
-            <div class="todo-dot" style="background:${a.color}"></div>
-          </div>
-        `).join('')}
-      </div>
-    `).join('')}
-  `;
-}
-async function toggleTodo(id) {
-  const a = actions.find(x=>x.id===id);
-  if(!a) return;
-  a.done = !a.done;
-  await db.patch('action_items','id=eq.'+id,{done:a.done});
-  renderTodo();
-  if(a.done) showToast('✓ 완료!');
+async function addAccount(cat){
+  const name=prompt('새 계좌 이름을 입력하세요:');
+  if(!name||!name.trim()) return;
+  const n=name.trim();
+  if(accounts.find(a=>a.name===n)){toast('이미 있는 계좌예요'); return;}
+  const maxSort=Math.max(0,...accounts.filter(a=>a.category===cat).map(a=>a.sort_order));
+  await api.post('accounts_master',[{name:n,category:cat,sort_order:maxSort+1}]);
+  accounts.push({name:n,category:cat,active:true,sort_order:maxSort+1});
+  renderInput();
+  toast('✓ '+n+' 추가됨');
 }
 
-// ═══════════════════════════════════════════
-// 시작
-// ═══════════════════════════════════════════
-if (accessToken) init();
+// ── 할일 ─────────────────────────────────
+const DEFAULT_TODOS=[
+  {id:1,text:'TDF2020 전액매도 → TDF2060 교체',done:false,tag:'즉시',color:'#b5482e'},
+  {id:2,text:'예금 만기 2,100만 배분 실행',done:false,tag:'즉시',color:'#b5482e'},
+  {id:3,text:'연금저축 올해 잔여 565만 납입',done:false,tag:'올해',color:'#caa94a'},
+  {id:4,text:'IRP 300만 추가 납입',done:false,tag:'올해',color:'#caa94a'},
+  {id:5,text:'개인투자용 국채 20년물 700만',done:false,tag:'올해',color:'#caa94a'},
+  {id:6,text:'배당성장 ETF 일반계좌 535만',done:false,tag:'올해',color:'#caa94a'},
+  {id:7,text:'증권사 연금저축 개설 후 ETF 직접투자',done:false,tag:'1~2년',color:'#1a7a4c'},
+  {id:8,text:'연금저축 연간 600만 납입 유지',done:false,tag:'매년',color:'#1a7a4c'},
+];
+let todos = JSON.parse(localStorage.getItem('npm_todos')||JSON.stringify(DEFAULT_TODOS));
+
+function renderTodo(){
+  const done=todos.filter(t=>t.done).length;
+  const tags=[...new Set(todos.map(t=>t.tag))];
+  let html=`<div class="card"><div class="card-title">진행 현황</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+      <div class="progress-bar"><div class="progress-fill" style="width:${(done/todos.length*100).toFixed(0)}%"></div></div>
+      <span style="font-size:14px;font-weight:600;color:#1a7a4c">${done}/${todos.length}</span>
+    </div></div>`;
+  for(const tag of tags){
+    html+=`<div class="tag-lbl">${tag}</div><div class="card">`;
+    for(const t of todos.filter(x=>x.tag===tag)){
+      html+=`<div class="todo-row" onclick="toggleTodo(${t.id})">
+        <div class="chk ${t.done?'done':''}">${t.done?'✓':''}</div>
+        <div class="todo-txt ${t.done?'done':''}">${t.text}</div>
+        <div class="tag-dot" style="background:${t.color}"></div>
+      </div>`;
+    }
+    html+=`</div>`;
+  }
+  document.getElementById('sec-todo').innerHTML=html;
+}
+function toggleTodo(id){
+  const t=todos.find(x=>x.id===id); if(!t)return;
+  t.done=!t.done; localStorage.setItem('npm_todos',JSON.stringify(todos));
+  renderTodo(); if(t.done)toast('✓ 완료!');
+}
+
+// ── 시작 ─────────────────────────────────
+if(token) init();
 </script>
 </body>
 </html>
