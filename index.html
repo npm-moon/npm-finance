@@ -157,6 +157,7 @@ const api = {
   patch:  (t,q,d)     => fetch(`${SB.url}/rest/v1/${t}?${q}`,{method:'PATCH',headers:H(),body:JSON.stringify(d)}).then(r=>r.json()),
   upsert: (t,d)       => fetch(`${SB.url}/rest/v1/${t}`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(d)}).then(r=>r.json()),
   del:    (t,q)       => fetch(`${SB.url}/rest/v1/${t}?${q}`,{method:'DELETE',headers:H()}),
+  del:    (t,q)       => fetch(`${SB.url}/rest/v1/${t}?${q}`,{method:'DELETE',headers:H()}),
 };
 
 // ── 유틸 ─────────────────────────────────
@@ -548,33 +549,172 @@ const DEFAULT_TODOS=[
   {id:7,text:'증권사 연금저축 개설 후 ETF 직접투자',done:false,tag:'1~2년',color:'#1a7a4c'},
   {id:8,text:'연금저축 연간 600만 납입 유지',done:false,tag:'매년',color:'#1a7a4c'},
 ];
-let todos = JSON.parse(localStorage.getItem('npm_todos')||JSON.stringify(DEFAULT_TODOS));
+let todos = [...DEFAULT_TODOS];
 
 function renderTodo(){
   const done=todos.filter(t=>t.done).length;
   const tags=[...new Set(todos.map(t=>t.tag))];
-  let html=`<div class="card"><div class="card-title">진행 현황</div>
-    <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
-      <div class="progress-bar"><div class="progress-fill" style="width:${(done/todos.length*100).toFixed(0)}%"></div></div>
-      <span style="font-size:14px;font-weight:600;color:#1a7a4c">${done}/${todos.length}</span>
-    </div></div>`;
+  let html=`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span class="card-title" style="margin:0">진행 현황</span>
+        <span style="font-size:14px;font-weight:600;color:#1a7a4c">${done}/${todos.length}</span>
+      </div>
+      <div class="progress-bar" style="height:7px"><div class="progress-fill" style="width:${todos.length?((done/todos.length)*100).toFixed(0):0}%"></div></div>
+    </div>
+    <button onclick="showAddTodo()" style="width:100%;padding:12px;border:1.5px dashed #1a7a4c;border-radius:12px;background:transparent;color:#1a7a4c;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">+ 할일 직접 추가</button>
+    <button onclick="runAIAnalysis()" id="aiBtn" style="width:100%;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#0f3d28,#1a7a4c);color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px">🤖 AI 자산 분석 → 할일 제안</button>
+    <div id="aiResult"></div>`;
   for(const tag of tags){
     html+=`<div class="tag-lbl">${tag}</div><div class="card">`;
     for(const t of todos.filter(x=>x.tag===tag)){
-      html+=`<div class="todo-row" onclick="toggleTodo(${t.id})">
-        <div class="chk ${t.done?'done':''}">${t.done?'✓':''}</div>
-        <div class="todo-txt ${t.done?'done':''}">${t.text}</div>
-        <div class="tag-dot" style="background:${t.color}"></div>
+      html+=`<div class="todo-row">
+        <div class="chk ${t.done?'done':''}" onclick="toggleTodo(${t.id})">${t.done?'✓':''}</div>
+        <div class="todo-txt ${t.done?'done':''}" onclick="toggleTodo(${t.id})">${t.text}</div>
+        <button onclick="deleteTodo(${t.id})" style="border:none;background:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0">×</button>
       </div>`;
     }
     html+=`</div>`;
   }
   document.getElementById('sec-todo').innerHTML=html;
 }
-function toggleTodo(id){
+
+function showAddTodo(){
+  const tag=prompt('태그를 선택하세요 (즉시/올해/1~2년/매년):','올해');
+  if(!tag) return;
+  const text=prompt('할일 내용:');
+  if(!text||!text.trim()) return;
+  addTodo(text.trim(), tag.trim());
+}
+
+async function addTodo(text, tag='올해', color='#1a7a4c'){
+  const maxSort=Math.max(0,...todos.map(t=>t.sort_order||0));
+  const newTodo={text, done:false, tag, color, sort_order:maxSort+1};
+  try {
+    const res=await api.post('action_items',[newTodo]);
+    todos.push(res[0]||{...newTodo,id:Date.now()});
+    renderTodo(); toast('✓ 추가됐어요!');
+  } catch(e){ console.error(e); }
+}
+
+async function toggleTodo(id){
   const t=todos.find(x=>x.id===id); if(!t)return;
-  t.done=!t.done; localStorage.setItem('npm_todos',JSON.stringify(todos));
+  t.done=!t.done;
+  try { await api.patch('action_items','id=eq.'+id,{done:t.done}); } catch(e){}
   renderTodo(); if(t.done)toast('✓ 완료!');
+}
+
+async function deleteTodo(id){
+  if(!confirm('삭제할까요?')) return;
+  todos=todos.filter(t=>t.id!==id);
+  try { await api.del('action_items','id=eq.'+id); } catch(e){}
+  renderTodo(); toast('삭제됐어요');
+}
+
+// ── AI 분석 ───────────────────────────────
+async function runAIAnalysis(){
+  const btn=document.getElementById('aiBtn');
+  const res=document.getElementById('aiResult');
+  if(!btn||!res) return;
+  btn.textContent='🤖 분석 중...'; btn.disabled=true;
+  res.innerHTML=`<div class="card" style="text-align:center;color:#5a6a60;font-size:13px">AI가 자산을 분석하고 있어요...<br><small>10~15초 소요됩니다</small></div>`;
+
+  try {
+    // 최신 2개월 데이터 준비
+    const dates=allDates();
+    const lastDt=dates[dates.length-1];
+    const prevDt=dates.length>1?dates[dates.length-2]:null;
+    const lastSnap=snapshots[lastDt]||{};
+    const prevSnap=prevDt?(snapshots[prevDt]||{}):null;
+
+    // 계좌별 데이터 정리
+    const acctLines=[];
+    for(const cat of ['cash','investment','pension','stocks','bonds']){
+      const catAccts=accounts.filter(a=>a.category===cat);
+      for(const a of catAccts){
+        const cur=(+((lastSnap[a.name]||{}).amount)||0);
+        const prev=prevSnap?(+((prevSnap[a.name]||{}).amount)||0):0;
+        if(cur!==0||prev!==0){
+          const chg=cur-prev;
+          const line=`${a.name}(${CAT_LABEL[cat]}): ${(cur/1e4).toFixed(0)}만원${chg!==0?' ('+( chg>0?'+':'')+Math.round(chg/1e4)+'만)':''}`;
+          acctLines.push(line);
+        }
+      }
+    }
+    const tot=totalForDate(lastDt);
+    const loan=loanForDate(lastDt);
+    const net=tot-loan;
+    const prevTot=prevDt?totalForDate(prevDt):0;
+    const monthChg=prevTot?(tot-prevTot):0;
+
+    const prompt=`당신은 개인 자산관리 전문가입니다. 아래는 한국의 41세 수학학원 원장의 ${lastDt} 기준 자산 현황입니다.
+
+총자산: ${(tot/1e8).toFixed(2)}억원
+순자산: ${(net/1e8).toFixed(2)}억원  
+대출: ${(loan/1e8).toFixed(2)}억원
+전월 대비: ${monthChg>0?'+':''}${Math.round(monthChg/1e4)}만원
+
+계좌별 상세 (현재금액, 괄호는 전월대비):
+${acctLines.join('
+')}
+
+현재 이미 진행 중인 할일:
+${todos.filter(t=>!t.done).map(t=>'- '+t.text).join('
+')||'없음'}
+
+위 자산 현황을 분석해서 지금 당장 또는 가까운 시일 내에 해야 할 구체적인 재무 액션 3~5개를 제안해주세요.
+
+반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON 배열만:
+[
+  {"text":"구체적인 할일 내용","tag":"즉시|올해|1~2년|매년","reason":"이유 한 줄"}
+]`;
+
+    const apiRes=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const apiData=await apiRes.json();
+    const raw=apiData.content?.[0]?.text||'[]';
+    const cleaned=raw.replace(/```json|```/g,'').trim();
+    const suggestions=JSON.parse(cleaned);
+
+    // 제안 UI 렌더
+    const colors={'즉시':'#b5482e','올해':'#caa94a','1~2년':'#1a7a4c','매년':'#0f3d28'};
+    let html=`<div class="card">
+      <div class="card-title">🤖 AI 제안 할일</div>`;
+    suggestions.forEach((s,i)=>{
+      const col=colors[s.tag]||'#1a7a4c';
+      html+=`<div style="padding:10px 0;border-bottom:.5px solid #e3ddd0">
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">
+          <span style="font-size:10px;background:${col};color:#fff;padding:2px 7px;border-radius:4px;flex-shrink:0;margin-top:2px">${s.tag}</span>
+          <span style="font-size:13.5px;line-height:1.4">${s.text}</span>
+        </div>
+        <div style="font-size:11.5px;color:#5a6a60;margin-bottom:8px;padding-left:4px">${s.reason}</div>
+        <button onclick="approveSuggestion(${i})" style="padding:6px 14px;border:1px solid #1a7a4c;border-radius:8px;background:transparent;color:#1a7a4c;font-size:12px;cursor:pointer">+ 할일에 추가</button>
+      </div>`;
+    });
+    html+=`</div>`;
+    res.innerHTML=html;
+    window._aiSuggestions=suggestions;
+    btn.textContent='🤖 AI 자산 분석 → 할일 제안'; btn.disabled=false;
+
+  } catch(e){
+    console.error(e);
+    res.innerHTML=`<div class="card" style="color:#b5482e;font-size:13px">분석 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.</div>`;
+    btn.textContent='🤖 AI 자산 분석 → 할일 제안'; btn.disabled=false;
+  }
+}
+
+async function approveSuggestion(i){
+  const s=window._aiSuggestions?.[i];
+  if(!s) return;
+  const colors={'즉시':'#b5482e','올해':'#caa94a','1~2년':'#1a7a4c','매년':'#0f3d28'};
+  await addTodo(s.text, s.tag, colors[s.tag]||'#1a7a4c');
 }
 
 // ── 시작 ─────────────────────────────────
