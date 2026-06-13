@@ -408,8 +408,15 @@ function renderInput() {
     <button onclick="loadDateData()" style="margin-top:8px;padding:8px 14px;border:1px solid #1a7a4c;border-radius:8px;background:transparent;color:#1a7a4c;font-size:13px;cursor:pointer">이 날짜 데이터 불러오기</button>
   </div>`;
 
+  // 만기해지 판단: 과거에 만기해지였고 현재 잔액 0인 계좌 숨김
+  const isExpired = n => {
+    const li=(snapshots[dt]||{})[n]||{};
+    if((+li.amount||0)>0) return false;
+    return allDates().some(d=>(snapshots[d]||{})[n]?.status==='만기해지');
+  };
+
   for(const cat of cats){
-    const catAccts = accounts.filter(a=>a.category===cat && a.active);
+    const catAccts = accounts.filter(a=>a.category===cat && a.active && !isExpired(a.name));
     html += `<div class="cat-hdr">${CAT_LABEL[cat]}</div><div class="card" id="cat_${cat}">`;
     for(const a of catAccts){
       const info = s[a.name]||{};
