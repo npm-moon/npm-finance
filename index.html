@@ -104,6 +104,11 @@ input,button,select{font-family:inherit}
 .toast{position:fixed;top:76px;left:50%;transform:translateX(-50%);background:#0f3d28;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
 .loading{text-align:center;padding:40px;color:#9aa89f;font-size:14px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:4px;background:#d9e2db}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;background:#1a7a4c;margin-top:-9.5px;box-shadow:0 2px 6px rgba(15,61,40,.35)}
+input[type=range]::-moz-range-track{height:5px;border-radius:4px;background:#d9e2db}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border:none;border-radius:50%;background:#1a7a4c}
 </style>
 </head>
 <body>
@@ -375,7 +380,7 @@ function simSlider(k,label,val,unit,min,max,step,hint){
       <span style="font-size:13px;color:#5a6a60">${label}</span>
       <span style="font-weight:600;color:#0f3d28;font-size:14px"><span id="sv_${k}">${val.toLocaleString('ko-KR')}</span><span style="font-size:11px;color:#9aa89f;margin-left:2px">${unit}</span></span>
     </div>
-    <input type="range" class="sim-sl" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}" style="-webkit-appearance:none;width:100%;height:24px;background:transparent">
+    <input type="range" class="sim-sl" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}" style="width:100%">
     ${hint?`<div style="font-size:11px;color:#9aa89f;margin-top:3px">${hint}</div>`:''}
   </div>`;
 }
