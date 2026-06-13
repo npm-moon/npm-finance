@@ -120,21 +120,25 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;heigh
 </head>
 <body>
 
-<!-- 비밀번호 화면 -->
+<!-- 로그인 화면 -->
 <div id="pwScreen">
   <div class="pw-logo">💰</div>
   <div class="pw-title">NPM 자산관리</div>
   <div class="pw-sub">문쌤 개인 재무 대시보드</div>
-  <input class="pw-box" type="password" id="pwInput" placeholder="비밀번호 입력" maxlength="20"/>
-  <button class="pw-btn" onclick="checkPw()">입력</button>
+  <input class="pw-box" type="email" id="emailInput" placeholder="이메일" style="margin-bottom:8px;letter-spacing:normal;font-size:15px"/>
+  <input class="pw-box" type="password" id="pwInput" placeholder="비밀번호" maxlength="30"/>
+  <button class="pw-btn" onclick="checkPw()" id="loginBtn">로그인</button>
   <div class="pw-err" id="pwErr"></div>
 </div>
 
 <!-- 앱 본체 -->
 <div id="app">
-  <div class="header">
-    <div class="header-eye">NPM 자산관리</div>
-    <div class="header-title" id="headerTitle">자산 현황</div>
+  <div class="header" style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div class="header-eye">NPM 자산관리</div>
+      <div class="header-title" id="headerTitle">자산 현황</div>
+    </div>
+    <button onclick="logout()" style="background:none;border:1px solid #e3ddd0;border-radius:8px;padding:6px 10px;font-size:12px;color:#5a6a60;cursor:pointer">로그아웃</button>
   </div>
 
   <div class="tab-content">
@@ -168,13 +172,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;heigh
 
 <script>
 // ═══════════════════════════════════════════
-// 설정 (변경 가능)
+// 설정
 // ═══════════════════════════════════════════
 const CFG = {
   url: 'https://doptimiubvjiwnjkznxj.supabase.co/rest/v1',
+  authUrl: 'https://doptimiubvjiwnjkznxj.supabase.co/auth/v1',
   key: 'sb_publishable_NgBxcUcjcutamlnQe-mI8w_5TGfZPIc',
-  pw:  'npm2026',  // ← 비밀번호 여기서 변경
 };
+
+let accessToken = sessionStorage.getItem('npm_token') || null;
 
 // ═══════════════════════════════════════════
 // 자산 메타
@@ -192,11 +198,16 @@ const ASSETS = [
 // ═══════════════════════════════════════════
 // Supabase API
 // ═══════════════════════════════════════════
-const H = { 'apikey': CFG.key, 'Authorization': 'Bearer '+CFG.key, 'Content-Type':'application/json', 'Prefer':'return=representation' };
+const getH = () => ({
+  'apikey': CFG.key,
+  'Authorization': 'Bearer ' + (accessToken || CFG.key),
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+});
 const db = {
-  async get(table, q='') { const r = await fetch(`${CFG.url}/${table}?${q}`, {headers:H}); return r.json(); },
-  async post(table, d)   { const r = await fetch(`${CFG.url}/${table}`, {method:'POST', headers:H, body:JSON.stringify(d)}); return r.json(); },
-  async patch(table, q, d){ const r = await fetch(`${CFG.url}/${table}?${q}`, {method:'PATCH', headers:H, body:JSON.stringify(d)}); return r.json(); },
+  async get(table, q='') { const r = await fetch(`${CFG.url}/${table}?${q}`, {headers:getH()}); return r.json(); },
+  async post(table, d)   { const r = await fetch(`${CFG.url}/${table}`, {method:'POST', headers:getH(), body:JSON.stringify(d)}); return r.json(); },
+  async patch(table, q, d){ const r = await fetch(`${CFG.url}/${table}?${q}`, {method:'PATCH', headers:getH(), body:JSON.stringify(d)}); return r.json(); },
 };
 
 // ═══════════════════════════════════════════
@@ -212,24 +223,54 @@ function showToast(msg) {
 }
 
 // ═══════════════════════════════════════════
-// 비밀번호
+// 로그인 / 로그아웃
 // ═══════════════════════════════════════════
-function checkPw() {
-  const v = document.getElementById('pwInput').value;
-  if (v === CFG.pw) {
-    sessionStorage.setItem('npm_auth','1');
-    document.getElementById('pwScreen').style.display='none';
-    document.getElementById('app').style.display='block';
-    init();
-  } else {
-    document.getElementById('pwErr').textContent = '비밀번호가 틀렸습니다';
-    setTimeout(()=>document.getElementById('pwErr').textContent='', 2000);
+async function checkPw() {
+  const email = document.getElementById('emailInput').value.trim();
+  const pw = document.getElementById('pwInput').value;
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('pwErr');
+  if (!email || !pw) { err.textContent = '이메일과 비밀번호를 입력해주세요'; return; }
+  btn.textContent = '로그인 중...'; btn.disabled = true;
+  try {
+    const res = await fetch(`${CFG.authUrl}/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': CFG.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw })
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      accessToken = data.access_token;
+      sessionStorage.setItem('npm_token', accessToken);
+      document.getElementById('pwScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      init();
+    } else {
+      err.textContent = '이메일 또는 비밀번호가 틀렸습니다';
+      btn.textContent = '로그인'; btn.disabled = false;
+    }
+  } catch(e) {
+    err.textContent = '로그인 오류가 발생했습니다';
+    btn.textContent = '로그인'; btn.disabled = false;
   }
 }
+async function logout() {
+  await fetch(`${CFG.authUrl}/logout`, {
+    method: 'POST',
+    headers: { 'apikey': CFG.key, 'Authorization': 'Bearer ' + accessToken }
+  });
+  sessionStorage.removeItem('npm_token');
+  accessToken = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('pwScreen').style.display = 'flex';
+  document.getElementById('pwInput').value = '';
+  document.getElementById('emailInput').value = '';
+}
 document.getElementById('pwInput').addEventListener('keydown', e=>{ if(e.key==='Enter') checkPw(); });
-if (sessionStorage.getItem('npm_auth')==='1') {
-  document.getElementById('pwScreen').style.display='none';
-  document.getElementById('app').style.display='block';
+// 세션 복원
+if (accessToken) {
+  document.getElementById('pwScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 }
 
 // ═══════════════════════════════════════════
@@ -529,7 +570,7 @@ async function toggleTodo(id) {
 // ═══════════════════════════════════════════
 // 시작
 // ═══════════════════════════════════════════
-if (sessionStorage.getItem('npm_auth')==='1') init();
+if (accessToken) init();
 </script>
 </body>
 </html>
