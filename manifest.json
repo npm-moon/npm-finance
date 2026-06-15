@@ -1,0 +1,24 @@
+{
+  "name": "NPM 자산관리",
+  "short_name": "NPM자산",
+  "description": "문쌤 개인 재무 대시보드",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0ede4",
+  "theme_color": "#0f3d28",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
